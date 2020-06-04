@@ -1,9 +1,9 @@
-# QAE  -- Version 1.1.1
-Qredit Always Evolving - An easy to use token system for both fungible (QAE-1) and non-fungible (QAE-2) tokens
+# Pyrk Tokens  -- Version 1.1.1
+Pyrk Tokens - An easy to use token system for both fungible (Type 1) and non-fungible (Type 2) tokens
 
-This is a sidechain for the Qredit network to integrate Simple Token issuance and management
+This is a sidechain for the Pyrk network to integrate Simple Token issuance and management
 
-This must be running on a Qredit Relay or Qredit Full node.
+This must be running on a Pyrk Full node with Indexing enabled.
 
 Install Mongodb & Redis:  (Default settings are fine for testing)
 
@@ -13,43 +13,35 @@ apt-get install redis-server
 
 ```
 
-Enable Webhooks in your Qredit Node:
+Enable Webhooks in your Pyrk Node:
 
 ```
-vi .config/qredit-core/mainnet/.env
-```
-
-Make sure the env file has these items:
-
-```
-CORE_WEBHOOKS_ENABLED=true
-CORE_WEBHOOKS_HOST=0.0.0.0
-CORE_WEBHOOKS_PORT=4104
+blocknotify=....
 ```
 
 Clone the repository and setup config:
 
 ```
 npm install
-mkdir /etc/qae/
-cp qae.ini.example /etc/qae/qae.ini
+mkdir /etc/pyrk/
+cp pyrk.ini.example /etc/pyrk/qae.ini
 ```
 
 Run the programs:
 
-qaeApi.js - The API interface to the QAE system
-qaeParser.js - The Qredit block parser
+pyrkApi.js - The API interface to the Pyrk Token system
+pyrkParser.js - The Pyrk block parser
 
 ```
-pm2 qaeApi.js
-pm2 qaeParser.js
+pm2 pyrkApi.js
+pm2 pyrkParser.js
 ```
 
-The server runs on the port set in the ini file.   If you want to run on a port < 1000, you'll need to run qaeApi.js with sudo
+The server runs on the port set in the ini file.   If you want to run on a port < 1000, you'll need to run pyrkApi.js with sudo
 
-Currently the system supports the QAE-1 contract schema (v15).   QAE-2 contract schema (v15) is currently in development.
+Currently the system supports the Type-1 contract schema (v15) & Type-2 contract schema (v15).
 
-QAE-1 (Schema v15) Contract Methods:
+Type-1 (Schema v15) Contract Methods:
 
 ```
 GENESIS - Create a new token
@@ -138,7 +130,7 @@ no = Notes  (String: Max 32 Characters)  (Optional)
 ```
 
 
-QAE-2 (Schema v15) Contract Methods:
+Type-2 (Schema v15) Contract Methods:
 
 ```
 GENESIS - Create a new token

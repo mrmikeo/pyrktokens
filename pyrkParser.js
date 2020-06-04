@@ -1,12 +1,11 @@
 /*
 *
-* QAE - Version 1.1.1
+* Pyrk Tokens - Version 1.1.1
 *
-* Qredit Always Evolving
 *
-* A simplified token management system for the Qredit network
+* A simplified token management system for the Pyrk network
 *
-* QAEParser - Parse the blockchain for QAE items
+* pyrkParser - Parse the blockchain for Token items
 *
 */
 
@@ -20,7 +19,8 @@ const SparkMD5	  = require('spark-md5');  		 // Faster than crypto for md5
 const {promisify} = require('util');			 // Promise functions
 const asyncv3	  = require('async');			 // Async Helper
 const { Client }  = require('pg');				 // Postgres
-const qreditjs	  = require("qreditjs");
+
+//const qreditjs	  = require("qreditjs");
 
 const { onShutdown } = require('node-graceful-shutdown');
 
@@ -48,15 +48,15 @@ onShutdown("parser", async function () {
 	
 });
 
-var iniconfig = ini.parse(fs.readFileSync('/etc/qae/qae.ini', 'utf-8'))
+var iniconfig = ini.parse(fs.readFileSync('/etc/pyrk/pyrk.ini', 'utf-8'))
 
 // Mongo Connection Details
 const mongoconnecturl = iniconfig.mongo_connection_string;
 const mongodatabase = iniconfig.mongo_database;
 
 // MongoDB Library
-const qaeDB = require("./lib/qaeDB");
-const qdb = new qaeDB.default(mongoconnecturl, mongodatabase);
+const pyrkDB = require("./lib/pyrkDB");
+const qdb = new pyrkDB.default(mongoconnecturl, mongodatabase);
 
 // Connect to Redis and setup some async call definitions
 const rclient	 = redis.createClient(iniconfig.redis_port, iniconfig.redis_host,{detect_buffers: true});
@@ -68,11 +68,11 @@ const setAsync	 = promisify(rclient.set).bind(rclient);
 const delAsync	 = promisify(rclient.del).bind(rclient);
 
 // QAE-1 Token Schema
-const qaeSchema = require("./lib/qaeSchema");
-const qae = new qaeSchema.default();
+const pyrkSchema = require("./lib/pyrkSchema");
+const pyrk = new pyrkSchema.default();
 
-const qaeactivationHeight = 2859480;
-const qaeactivationBlockId = 'c36c7920a5194e67c646145c54051d22f9b2f192cf458da8683e34af4a1582ac';
+const activationHeight = 1;
+const activationBlockId = '';
 
 // Declaring some variable defaults
 
@@ -102,7 +102,7 @@ rclient.on('error',function() {
 
 // Rescan Flag or Unknown last scan -  rescans all transaction (ie. #node qaeApiv2.js true)
 
-rclient.get('qae_lastscanblock', function(err, lbreply)
+rclient.get('pyrk_lastscanblock', function(err, lbreply)
 {
 
 	if ((process.argv.length == 3 && (process.argv[2] == '1' || process.argv[2] == 'true')) || lbreply == null || parseInt(lbreply) != lbreply) 
@@ -114,11 +114,11 @@ rclient.get('qae_lastscanblock', function(err, lbreply)
 			console.log("Forcing a Rescan....");
 			console.log("--------------------");
 
-			await delAsync('qae_lastscanblock');
-			await delAsync('qae_lastblockid');
+			await delAsync('pyrk_lastscanblock');
+			await delAsync('pyrk_lastblockid');
 		
-			await setAsync('qae_lastscanblock', qaeactivationHeight);
-			await setAsync('qae_lastblockid', qaeactivationBlockId);
+			await setAsync('pyrk_lastscanblock', activationHeight);
+			await setAsync('pyrk_lastblockid', activationBlockId);
 			
 			// Remove items from MongoDB
 			
@@ -259,6 +259,7 @@ function blockNotifyQueue()
 function downloadChain()
 {
 
+/*
 	scanLock = true;
 	scanLockTimer = Math.floor(new Date() / 1000);
 	
@@ -285,6 +286,7 @@ function downloadChain()
 		doScan();
 		
 	})();
+*/
 
 }
 
@@ -312,7 +314,7 @@ function doScan()
 	scanLock = true;
 	scanLockTimer = Math.floor(new Date() / 1000);
 	
-	rclient.get('qae_lastscanblock', function(err, reply){
+	rclient.get('pyrk_lastscanblock', function(err, reply){
 
 		if (err)
 		{
@@ -320,7 +322,7 @@ function doScan()
 		}
 		else if (reply == null || parseInt(reply) != reply)
 		{
-			scanBlockId = qaeactivationHeight;
+			scanBlockId = activationHeight;
 		}
 		else
 		{
@@ -329,7 +331,7 @@ function doScan()
 		
 		//
 		
-		rclient.get('qae_lastblockid', function(err, replytwo){
+		rclient.get('pyrk_lastblockid', function(err, replytwo){
 
 			if (err)
 			{
@@ -705,7 +707,7 @@ function truncateToDecimals(num, dec = 2)
 function error_handle(error, caller = 'unknown', severity = 'error')
 {
 
-	var scriptname = 'qaeParser.js';
+	var scriptname = 'pyrkParser.js';
 
 	console.log("Error Handle has been called!");
 	

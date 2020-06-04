@@ -1,11 +1,11 @@
 {
-  "name": "qaeApi",
+  "name": "pyrkApi",
   "version": "0.0.1",
-  "description": "This package file is for all the dependencies for the Qredit Always Evolving Token API",
-  "main": "qaeApi.js",
+  "description": "This package file is for all the dependencies for the Pyrk Token API",
+  "main": "pyrkApi.js",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/mrmikeo/qae.git"
+    "url": "git+https://github.com/mrmikeo/pyrktokens.git"
   },
   "dependencies": {
     "assert": "^2.0.0",
@@ -27,7 +27,6 @@
     "npm": "^6.13.4",
     "pg": "^7.17.0",
     "public-ip": "^3.2.0",
-    "qreditjs": "git+https://github.com/Qredit/qredit-js.git",
     "redis": "^2.8.0",
     "request": "^2.88.0",
     "request-promise": "^4.2.5",
