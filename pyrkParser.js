@@ -18,9 +18,10 @@ const crypto	  = require('crypto');			 // for creating hashes of things
 const SparkMD5	  = require('spark-md5');  		 // Faster than crypto for md5
 const {promisify} = require('util');			 // Promise functions
 const asyncv3	  = require('async');			 // Async Helper
-const { Client }  = require('pg');				 // Postgres
 
-//const qreditjs	  = require("qreditjs");
+const pyrkcore 	  = require('@pyrkcommunity/pyrkcore-lib'); // Pyrk core library for nodejs
+
+const Client	  = require('bitcoin-core');	 // Bitcoin RPC
 
 const { onShutdown } = require('node-graceful-shutdown');
 
@@ -37,10 +38,10 @@ onShutdown("parser", async function () {
 		var shutdowncheck = setInterval(function() {
 
 			console.log('Checking if shutdown is safe... ' + safetoshutdown.toString());
-			if (safetoshutdown == true)
-			{
+			//if (safetoshutdown == true)
+			//{
 				resolve(true);
-			}
+			//}
   
 		}, 1000);
 
@@ -49,6 +50,10 @@ onShutdown("parser", async function () {
 });
 
 var iniconfig = ini.parse(fs.readFileSync('/etc/pyrk/pyrk.ini', 'utf-8'))
+
+// Pyrk RPC
+
+var client = new Client({ host: iniconfig.pyrk_host, port: iniconfig.pyrk_port, username: iniconfig.pyrk_username, password: iniconfig.pyrk_password });
 
 // Mongo Connection Details
 const mongoconnecturl = iniconfig.mongo_connection_string;
@@ -71,8 +76,10 @@ const delAsync	 = promisify(rclient.del).bind(rclient);
 const pyrkSchema = require("./lib/pyrkSchema");
 const pyrk = new pyrkSchema.default();
 
-const activationHeight = 1;
-const activationBlockId = '';
+const activationHeight = 25000;
+const activationBlockId = '000000000000000feb054686168fafb67897a5766c1ffeafed713889e0f18728';
+
+const validopcodes = ['01','02','03','04'];
 
 // Declaring some variable defaults
 
@@ -201,7 +208,7 @@ rclient.get('pyrk_lastscanblock', function(err, lbreply)
 				await qdb.removeDocuments('counters', {});
 			}
 			
-			await qae.indexDatabase(qdb);
+			await pyrk.indexDatabase(qdb);
 			
 			await qdb.close();	
 			
@@ -226,7 +233,7 @@ rclient.get('pyrk_lastscanblock', function(err, lbreply)
 function initialize()
 {
 
-	downloadChain();
+	getChainInfo();
 	blockNotifyQueue();
 
 }
@@ -256,37 +263,28 @@ function blockNotifyQueue()
 	
 }
 
-function downloadChain()
+function getChainInfo()
 {
 
-/*
-	scanLock = true;
-	scanLockTimer = Math.floor(new Date() / 1000);
+	client.command('getblockchaininfo').then((info) => {
 	
-	(async () => {
-			
-		var pgclient = new Client({user: iniconfig.pg_username, database: iniconfig.pg_database, password: iniconfig.pg_password});
-		await pgclient.connect()
-		var message = await pgclient.query('SELECT * FROM blocks ORDER BY height DESC LIMIT 1')
-		await pgclient.end()
-			
+		console.log(info);
+
+		var topHeight = info.blocks;
+		lastBlockId = info.bestblockhash;
 		
-		var topHeight = 0;
-		if (message && message.rows && message.rows[0].height)
-		{
-			var topHeight = message.rows[0].height;
-			lastBlockId = message.rows[0].id;
-		}
-		
-		console.log('Qredit Current Top Height #' + topHeight + '.....');
+		console.log('Pyrk Current Top Height #' + topHeight + '.....');
 
 		scanLock = false;
 		scanLockTimer = 0;
 
 		doScan();
-		
-	})();
-*/
+	
+	}).catch((err) => {
+	
+		console.log(err);
+	
+	});
 
 }
 
@@ -355,18 +353,29 @@ function doScan()
 
 				var currentHeight = 0;
 
-				var pgclient = new Client({user: iniconfig.pg_username, database: iniconfig.pg_database, password: iniconfig.pg_password});
-				await pgclient.connect()
-				var message = await pgclient.query('SELECT * FROM blocks ORDER BY height DESC LIMIT 1');
 
-				if (message && message.rows) currentHeight = parseInt(message.rows[0].height);
-			
-				console.log('Current Blockchain Height: ' + currentHeight);
+				client.command('getblockchaininfo').then((info) => {
+	
+					(async () => {
+					
+						console.log(info);
 
-				var mclient = await qdb.connect();
-				qdb.setClient(mclient);
+						currentHeight = info.blocks;
+					
+						console.log('Current Blockchain Height: ' + currentHeight);
+
+						var mclient = await qdb.connect();
+						qdb.setClient(mclient);
 				
-				await whilstScanBlocks(scanBlockId, currentHeight, pgclient, qdb);
+						await whilstScanBlocks(scanBlockId, currentHeight, qdb);
+					
+					})();
+	
+				}).catch((err) => {
+	
+					console.log(err);
+	
+				});
 									
 			})();
 
@@ -377,7 +386,7 @@ function doScan()
 }
 
 
-async function whilstScanBlocks(count, max, pgclient, qdb)
+async function whilstScanBlocks(count, max, qdb)
 {
 
 	return new Promise((resolve) => {
@@ -400,49 +409,837 @@ async function whilstScanBlocks(count, max, pgclient, qdb)
 					scanLockTimer = Math.floor(new Date() / 1000);
 										
 					if (count%1000 == 0 || count == max) console.log("Scanning: " + count);
-				
-					pgclient.query('SELECT id, number_of_transactions, height, previous_block FROM blocks WHERE height = $1 LIMIT 1', [count], (err, message) => {
-							
-						if (message && message.rows)
+
+					(async () => {
+
+						var blockhash = await client.getBlockHash(count);
+					
+						var blockdata = await client.getBlock(blockhash);
+
+						if (blockdata && blockdata.hash)
 						{
 
-							var blockdata = message.rows[0];
+							var blockidcode = blockdata.hash;
+							var blocktranscount = blockdata.tx.length;
+							var thisblockheight = blockdata.height;
+					
+							var previousblockid = blockdata.previousblockhash;
 
-							if (blockdata && blockdata.id)
+							if (lastBlockId != previousblockid && thisblockheight > 1)
 							{
-
-								var blockidcode = blockdata.id;
-								var blocktranscount = blockdata.number_of_transactions;
-								var thisblockheight = blockdata.height;
+				
+								console.log('Error:	 Last Block ID is incorrect!  Rescan Required!');
 						
-								var previousblockid = blockdata.previous_block;
-
-								if (lastBlockId != previousblockid && thisblockheight > 1)
-								{
-					
-									console.log('Error:	 Last Block ID is incorrect!  Rescan Required!');
-							
-									console.log("Expected: " + previousblockid);
-									console.log("Received: " + lastBlockId);
-									console.log("ThisBlockHeight: " + thisblockheight);
-									console.log("LastScanBlock: " + count);
-							
-									rclient.del('qae_lastblockid', function(err, reply){
-										rclient.del('qae_lastscanblock', function(err, reply){
-											process.exit(-1);
-										});
+								console.log("Expected: " + previousblockid);
+								console.log("Received: " + lastBlockId);
+								console.log("ThisBlockHeight: " + thisblockheight);
+								console.log("LastScanBlock: " + count);
+						
+								rclient.del('pyrk_lastblockid', function(err, reply){
+									rclient.del('pyrk_lastscanblock', function(err, reply){
+										process.exit(-1);
 									});
-					
+								});
+				
+							}
+
+							lastBlockId = blockidcode;
+						
+							processedItems = false;
+
+							if (blocktranscount > 0 && thisblockheight >= activationHeight)
+							{
+			
+								
+								for (let ti = 0; ti < blocktranscount; ti++)
+								{
+								
+									(async () => {
+								
+										var txdetails = await client.getRawTransaction(blockdata.tx[ti], true);
+													
+													
+										if (txdetails['vin'][0]['txid'])
+										{
+										
+											var inputtxdetails = await client.getRawTransaction(txdetails['vin'][0]['txid'], true);		
+										
+											
+											try {
+										
+												var inputvalue = Big(inputtxdetails['vout'][txdetails['vin'][0]['vout']]['value']);
+													
+												var totalout = Big(0);		
+												for (let si = 0; si < txdetails.vout.length; si++)
+												{
+													var vitem = txdetails.vout[si];
+													totalout = Big(totalout).plus(vitem.value);
+												}
+												var feespaid = Big(inputvalue).minus(totalout);
+										
+											} catch (e) {
+										
+												var feespaid = Big(0);
+											
+											}
+										
+										}
+										else
+										{
+											var feespaid = Big(0);
+										}
+										
+										
+										var senderaddress = '';
+										
+										if (txdetails['vin'][0]['scriptSig'])
+										{
+																				
+											var vinasm = txdetails['vin'][0]['scriptSig']['asm'].split(' ');
+											senderaddress = pyrkcore.PublicKey(vinasm[1]).toAddress().toString();
+
+										}
+									
+										for (let si = 0; si < txdetails.vout.length; si++)
+										{
+										
+											var vitem = txdetails.vout[si];
+																								
+											if (vitem['scriptPubKey'] && vitem['scriptPubKey']['asm'])
+											{
+											
+												var asm = vitem['scriptPubKey']['asm'];
+
+												if (asm.indexOf('OP_RETURN') != -1)
+												{
+											
+													var opreturndata = asm.substr(10);
+													
+													//console.log(opreturndata.substr(0,4));
+												
+													if (opreturndata.substr(0,4) == '3432') // This is the code for Tokens
+													{
+												
+														// See what the opcode is
+														var protocolid = opreturndata.substr(0,4);
+														var versionnum = opreturndata.substr(4,2);
+														var opcode = opreturndata.substr(6,2);
+														
+														if (versionnum == '01' && validopcodes.indexOf(opcode) != -1) // ok continue
+														{
+															switch (opcode) {
+															
+																case '01':
+																
+																	/***
+																	*
+																	*    Issue New Token
+																	*
+																	*/
+																	
+																	//console.log(opreturndata);
+																	
+																	try {
+																	
+																		var rawtickercode = opreturndata.substr(8,10);
+																		var rawtokenname = opreturndata.substr(18,40);
+																		var rawvalueint = opreturndata.substr(58,20);
+																		var rawvaluedec = opreturndata.substr(78,16);
+																		
+																
+																		var tickercode = Buffer.from(rawtickercode, 'hex').toString('utf8').replace(/\0/g, '').trim();
+																		var tokenname = Buffer.from(rawtokenname, 'hex').toString('utf8').replace(/\0/g, '').trim();
+																		var valueint = Buffer.from(rawvalueint, 'hex').toString('utf8').replace(/\0/g, '').trim();
+																		var valuedec = Buffer.from(rawvaluedec, 'hex').toString('utf8').replace(/\0/g, '').trim();
+																		
+																		//console.log("Ticker:" + tickercode);
+																		//console.log("Name:" + tokenname);
+																		//console.log("Int:" + valueint);
+																		//console.log("Dec:" + valuedec);
+																		
+																		var stringvalue = valueint + '.' + valuedec;
+																		
+																		//console.log("StrVal:" + stringvalue);
+																		
+																		var realvalue = Big(stringvalue).toFixed(8);
+																	
+																		if (tickercode != '' && tokenname != '' && Big(realvalue).gte(0))
+																		{
+																	
+																			var createobject = {
+																					protocolid: protocolid,
+																					versionnum: versionnum,
+																					opcode: opcode,
+																					senderaddress: senderaddress,
+																					transactiontype: 'GENESIS',
+																					tickercode: tickercode,
+																					tokenname: tokenname,
+																					valueint: valueint,
+																					valuedec: valuedec,
+																					realvalue: realvalue,
+																					feepaid: feespaid.toFixed(8)
+																				};
+																			
+																		}
+																		else
+																		{
+																		
+																			var createobject = null;
+																		
+																		}
+																		
+																		
+																	} catch (e) {
+
+																		//console.log(e);
+																		
+																		var createobject = null;
+																	
+																	}
+																	
+																	if (createobject != null)
+																	{
+																	
+																		console.log(createobject);
+																		//console.log(txdetails);
+																		//console.log(blockdata);
+																		//console.log(txdetails['vin']);
+																		//console.log(txdetails['vout']);
+																		
+																		// These 3 items send for processing...
+
+																		(async () => {
+																		
+																			var pyrkresult = await pyrk.parseTransaction(txdetails, blockdata, createobject, qdb);
+																		
+																		})();
+																		
+																	}
+																	
+																	break;
+																	
+																case '02':
+																
+																	/***
+																	*
+																	*    Add Meta Data
+																	*
+																	*/
+																	
+																	console.log(opreturndata);
+																	
+																	try {
+																	
+																		var rawmetacode = opreturndata.substr(8,8);
+																		var rawtokenid = opreturndata.substr(16,44);
+																		var rawmetavalue = opreturndata.substr(60,100);
+																		
+																
+																		var metacode = Buffer.from(rawmetacode, 'hex').toString('utf8').replace(/\0/g, '').trim();
+																		var tokenid = Buffer.from(rawtokenid, 'hex').toString('utf8').replace(/\0/g, '').trim();
+																		var metavalue = Buffer.from(rawmetavalue, 'hex').toString('utf8').replace(/\0/g, '').trim();
+																		
+																		//console.log("Metacode:" + metacode);
+																		//console.log("TokenID:" + tokenid);
+																		//console.log("MetaValue:" + metavalue);
+
+																	
+																		if (tokenid != '')
+																		{
+																	
+																			var createobject = {
+																					protocolid: protocolid,
+																					versionnum: versionnum,
+																					opcode: opcode,
+																					senderaddress: senderaddress,
+																					transactiontype: 'ADDMETA',
+																					tokenid: tokenid,
+																					metacode: metacode,
+																					metavalue: metavalue,
+																					feepaid: feespaid.toFixed(8)
+																				};
+																			
+																		}
+																		else
+																		{
+																		
+																			var createobject = null;
+																		
+																		}
+																		
+																		
+																	} catch (e) {
+
+																		//console.log(e);
+																		
+																		var createobject = null;
+																	
+																	}
+																	
+																	if (createobject != null)
+																	{
+																	
+																		console.log(createobject);
+																		console.log(txdetails);
+																		console.log(blockdata);
+																		
+																		// These 3 items send for processing...
+																		
+																		(async () => {
+																		
+																			var pyrkresult = await pyrk.parseTransaction(txdetails, blockdata, createobject, qdb);
+																		
+																		})();
+																	
+																	}
+																
+																	break;
+															
+																case '03':
+
+																	/***
+																	*
+																	*    Burn Token
+																	*
+																	*/
+																	
+																	console.log(opreturndata);
+																	
+																	try {
+																	
+																		var rawtokenid = opreturndata.substr(8,44);
+																		var rawvalueint = opreturndata.substr(52,20);
+																		var rawvaluedec = opreturndata.substr(72,16);
+																		
+																
+																		var tokenid = Buffer.from(rawtokenid, 'hex').toString('utf8').replace(/\0/g, '').trim();
+																		var valueint = Buffer.from(rawvalueint, 'hex').toString('utf8').replace(/\0/g, '').trim();
+																		var valuedec = Buffer.from(rawvaluedec, 'hex').toString('utf8').replace(/\0/g, '').trim();
+																		
+																		//console.log("tokenid:" + tokenid);
+																		//console.log("valueint:" + valueint);
+																		//console.log("valuedec:" + valuedec);
+
+																		var stringvalue = valueint + '.' + valuedec;
+																		
+																		//console.log("StrVal:" + stringvalue);
+																		
+																		var realvalue = Big(stringvalue).toFixed(8);
+																	
+																		if (tokenid != '' && Big(realvalue).gt(0))
+																		{
+																	
+																			var createobject = {
+																					protocolid: protocolid,
+																					versionnum: versionnum,
+																					opcode: opcode,
+																					senderaddress: senderaddress,
+																					transactiontype: 'BURN',
+																					tokenid: tokenid,
+																					valueint: valueint,
+																					valuedec: valuedec,
+																					realvalue: realvalue,
+																					feepaid: feespaid.toFixed(8)
+																				};
+																			
+																		}
+																		else
+																		{
+																		
+																			var createobject = null;
+																		
+																		}
+																		
+																		
+																	} catch (e) {
+
+																		//console.log(e);
+																		
+																		var createobject = null;
+																	
+																	}
+																	
+																	if (createobject != null)
+																	{
+																	
+																		console.log(createobject);
+																		console.log(txdetails);
+																		console.log(blockdata);
+																		
+																		// These 3 items send for processing...
+																		
+																		(async () => {
+																		
+																			var pyrkresult = await pyrk.parseTransaction(txdetails, blockdata, createobject, qdb);
+																		
+																		})();
+																																			
+																	}
+																
+																	break;
+															
+																case '04':
+																
+																	/***
+																	*
+																	*    Send Token
+																	*
+																	*/
+																	
+																	console.log(opreturndata);
+																	
+																	try {
+																	
+																		var rawtokenid = opreturndata.substr(8,44);
+																		var rawvalueint = opreturndata.substr(52,20);
+																		var rawvaluedec = opreturndata.substr(72,16);
+																		var rawrecipient = opreturndata.substr(88,68);
+																
+																		var tokenid = Buffer.from(rawtokenid, 'hex').toString('utf8').replace(/\0/g, '').trim();
+																		var valueint = Buffer.from(rawvalueint, 'hex').toString('utf8').replace(/\0/g, '').trim();
+																		var valuedec = Buffer.from(rawvaluedec, 'hex').toString('utf8').replace(/\0/g, '').trim();
+																		var recipient = Buffer.from(rawrecipient, 'hex').toString('utf8').replace(/\0/g, '').trim();
+
+																		//console.log("tokenid:" + tokenid);
+																		//console.log("valueint:" + valueint);
+																		//console.log("valuedec:" + valuedec);
+																		//console.log("recipient:" + recipient);
+																		
+																		var stringvalue = valueint + '.' + valuedec;
+																		
+																		//console.log("StrVal:" + stringvalue);
+																		
+																		var realvalue = Big(stringvalue).toFixed(8);
+																	
+																		if (tokenid != '' && Big(realvalue).gt(0))
+																		{
+																	
+																			var createobject = {
+																					protocolid: protocolid,
+																					versionnum: versionnum,
+																					opcode: opcode,
+																					senderaddress: senderaddress,
+																					transactiontype: 'SEND',
+																					tokenid: tokenid,
+																					valueint: valueint,
+																					valuedec: valuedec,
+																					realvalue: realvalue,
+																					recipient: recipient,
+																					feepaid: feespaid.toFixed(8)
+																				};
+																			
+																		}
+																		else
+																		{
+																		
+																			var createobject = null;
+																		
+																		}
+																		
+																		
+																	} catch (e) {
+
+																		//console.log(e);
+																		
+																		var createobject = null;
+																	
+																	}
+																	
+																	if (createobject != null)
+																	{
+																	
+																		console.log(createobject);
+																		console.log(txdetails);
+																		console.log(blockdata);
+																		
+																		// These 3 items send for processing...
+																		
+																		(async () => {
+																		
+																			var pyrkresult = await pyrk.parseTransaction(txdetails, blockdata, createobject, qdb);
+																		
+																		})();
+																																			
+																	}
+																
+																	break;
+
+																case '05':
+																
+																	/***
+																	*
+																	*    Pause Token
+																	*
+																	*/
+																	
+																	console.log(opreturndata);
+																	
+																	try {
+																	
+																		var rawtokenid = opreturndata.substr(8,44);
+																
+																		var tokenid = Buffer.from(rawtokenid, 'hex').toString('utf8').replace(/\0/g, '').trim();
+
+																		//console.log("tokenid:" + tokenid);
+																	
+																		if (tokenid != '')
+																		{
+																	
+																			var createobject = {
+																					protocolid: protocolid,
+																					versionnum: versionnum,
+																					opcode: opcode,
+																					senderaddress: senderaddress,
+																					transactiontype: 'PAUSE',
+																					feepaid: feespaid.toFixed(8)
+																				};
+																			
+																		}
+																		else
+																		{
+																		
+																			var createobject = null;
+																		
+																		}
+																		
+																		
+																	} catch (e) {
+
+																		//console.log(e);
+																		
+																		var createobject = null;
+																	
+																	}
+																	
+																	if (createobject != null)
+																	{
+																	
+																		console.log(createobject);
+																		console.log(txdetails);
+																		console.log(blockdata);
+																		
+																		// These 3 items send for processing...
+																		
+																		(async () => {
+																		
+																			var pyrkresult = await pyrk.parseTransaction(txdetails, blockdata, createobject, qdb);
+																		
+																		})();
+																																			
+																	}
+																
+																	break;
+
+																case '06':
+																
+																	/***
+																	*
+																	*    Resume Token
+																	*
+																	*/
+																	
+																	console.log(opreturndata);
+																	
+																	try {
+																	
+																		var rawtokenid = opreturndata.substr(8,44);
+																
+																		var tokenid = Buffer.from(rawtokenid, 'hex').toString('utf8').replace(/\0/g, '').trim();
+
+																		//console.log("tokenid:" + tokenid);
+																	
+																		if (tokenid != '')
+																		{
+																	
+																			var createobject = {
+																					protocolid: protocolid,
+																					versionnum: versionnum,
+																					opcode: opcode,
+																					senderaddress: senderaddress,
+																					transactiontype: 'RESUME',
+																					feepaid: feespaid.toFixed(8)
+																				};
+																			
+																		}
+																		else
+																		{
+																		
+																			var createobject = null;
+																		
+																		}
+																		
+																		
+																	} catch (e) {
+
+																		//console.log(e);
+																		
+																		var createobject = null;
+																	
+																	}
+																	
+																	if (createobject != null)
+																	{
+																	
+																		console.log(createobject);
+																		console.log(txdetails);
+																		console.log(blockdata);
+																		
+																		// These 3 items send for processing...
+																		
+																		(async () => {
+																		
+																			var pyrkresult = await pyrk.parseTransaction(txdetails, blockdata, createobject, qdb);
+																		
+																		})();
+																																			
+																	}
+																
+																	break;
+
+																case '07':
+																
+																	/***
+																	*
+																	*    New Owner
+																	*
+																	*/
+																	
+																	console.log(opreturndata);
+																	
+																	try {
+																	
+																		var rawtokenid = opreturndata.substr(8,44);
+																		var rawnewowner = opreturndata.substr(88,68);
+																
+																		var tokenid = Buffer.from(rawtokenid, 'hex').toString('utf8').replace(/\0/g, '').trim();
+																		var newowner = Buffer.from(rawnewowner, 'hex').toString('utf8').replace(/\0/g, '').trim();
+
+																		//console.log("tokenid:" + tokenid);
+																		//console.log("newowner:" + newowner);
+																	
+																		if (tokenid != '' && newowner != '')
+																		{
+																	
+																			var createobject = {
+																					protocolid: protocolid,
+																					versionnum: versionnum,
+																					opcode: opcode,
+																					senderaddress: senderaddress,
+																					transactiontype: 'NEWOWNER',
+																					tokenid: tokenid,
+																					newowner: newowner,
+																					feepaid: feespaid.toFixed(8)
+																				};
+																			
+																		}
+																		else
+																		{
+																		
+																			var createobject = null;
+																		
+																		}
+																		
+																		
+																	} catch (e) {
+
+																		//console.log(e);
+																		
+																		var createobject = null;
+																	
+																	}
+																	
+																	if (createobject != null)
+																	{
+																	
+																		console.log(createobject);
+																		console.log(txdetails);
+																		console.log(blockdata);
+																		
+																		// These 3 items send for processing...
+																		
+																		(async () => {
+																		
+																			var pyrkresult = await pyrk.parseTransaction(txdetails, blockdata, createobject, qdb);
+																		
+																		})();
+																																			
+																	}
+																
+																	break;
+
+																case '08':
+																
+																	/***
+																	*
+																	*    Auth Meta
+																	*
+																	*/
+																	
+																	console.log(opreturndata);
+																	
+																	try {
+																	
+																		var rawtokenid = opreturndata.substr(8,44);
+																		var rawmetaaddress = opreturndata.substr(88,68);
+																
+																		var tokenid = Buffer.from(rawtokenid, 'hex').toString('utf8').replace(/\0/g, '').trim();
+																		var metaaddress = Buffer.from(rawmetaaddress, 'hex').toString('utf8').replace(/\0/g, '').trim();
+
+																		//console.log("tokenid:" + tokenid);
+																		//console.log("newowner:" + newowner);
+																	
+																		if (tokenid != '' && metaaddress != '')
+																		{
+																	
+																			var createobject = {
+																					protocolid: protocolid,
+																					versionnum: versionnum,
+																					opcode: opcode,
+																					senderaddress: senderaddress,
+																					transactiontype: 'AUTHMETA',
+																					tokenid: tokenid,
+																					metaaddress: metaaddress,
+																					feepaid: feespaid.toFixed(8)
+																				};
+																			
+																		}
+																		else
+																		{
+																		
+																			var createobject = null;
+																		
+																		}
+																		
+																		
+																	} catch (e) {
+
+																		//console.log(e);
+																		
+																		var createobject = null;
+																	
+																	}
+																	
+																	if (createobject != null)
+																	{
+																	
+																		console.log(createobject);
+																		console.log(txdetails);
+																		console.log(blockdata);
+																		
+																		// These 3 items send for processing...
+																		
+																		(async () => {
+																		
+																			var pyrkresult = await pyrk.parseTransaction(txdetails, blockdata, createobject, qdb);
+																		
+																		})();
+																																			
+																	}
+																
+																	break;
+
+																case '08':
+																
+																	/***
+																	*
+																	*    Revoke Meta
+																	*
+																	*/
+																	
+																	console.log(opreturndata);
+																	
+																	try {
+																	
+																		var rawtokenid = opreturndata.substr(8,44);
+																		var rawmetaaddress = opreturndata.substr(88,68);
+																
+																		var tokenid = Buffer.from(rawtokenid, 'hex').toString('utf8').replace(/\0/g, '').trim();
+																		var metaaddress = Buffer.from(rawmetaaddress, 'hex').toString('utf8').replace(/\0/g, '').trim();
+
+																		//console.log("tokenid:" + tokenid);
+																		//console.log("newowner:" + newowner);
+																	
+																		if (tokenid != '' && metaaddress != '')
+																		{
+																	
+																			var createobject = {
+																					protocolid: protocolid,
+																					versionnum: versionnum,
+																					opcode: opcode,
+																					senderaddress: senderaddress,
+																					transactiontype: 'REVOKEMETA',
+																					tokenid: tokenid,
+																					metaaddress: metaaddress,
+																					feepaid: feespaid.toFixed(8)
+																				};
+																			
+																		}
+																		else
+																		{
+																		
+																			var createobject = null;
+																		
+																		}
+																		
+																		
+																	} catch (e) {
+
+																		//console.log(e);
+																		
+																		var createobject = null;
+																	
+																	}
+																	
+																	if (createobject != null)
+																	{
+																	
+																		console.log(createobject);
+																		console.log(txdetails);
+																		console.log(blockdata);
+																		
+																		// These 3 items send for processing...
+																		
+																		(async () => {
+																		
+																			var pyrkresult = await pyrk.parseTransaction(txdetails, blockdata, createobject, qdb);
+																		
+																		})();
+																																			
+																	}
+																
+																	break;
+
+
+															}
+															
+														}
+														
+													}
+												
+												}
+											
+											}
+										
+										}
+									
+									})();
+								
 								}
 
-								lastBlockId = blockidcode;
+								await setAsync('pyrk_lastscanblock', thisblockheight);
+								await setAsync('pyrk_lastblockid', blockidcode);
+												
+								callback(null, count);
+								
+							}
 							
-								processedItems = false;
-
-								if (parseInt(blocktranscount) > 0 && thisblockheight >= qaeactivationHeight)
-								{
-				
-									pgclient.query('SELECT * FROM transactions WHERE block_id = $1 ORDER BY sequence ASC', [blockidcode], (err, tresponse) => {
+						}
+							
+					})();
+					
+				}
+									
+/*
 				
 										if (tresponse && tresponse.rows)
 										{
@@ -519,27 +1316,7 @@ console.log(txdata);
 																}
 									
 															}
-															else if (parsejson.qae2)
-															{
 
-console.log(txdata);
-
-																var txmessage = await qdb.findDocuments('metadata', {"txid": txdata.id});
-																if (txmessage.length == 0)
-																{
-																	try {
-																		var qaeresult = await qae.parseTransaction(txdata, blockdata, qdb);
-																	} catch (e) {
-																		error_handle(e, 'parseTransaction', 'error');
-																	}
-																	processedItems = true;
-																}
-																else
-																{
-																	console.log('ERROR:	 We already have TXID: ' + txdata.id);
-																}
-															
-															}
 							
 														}
 							
@@ -551,8 +1328,8 @@ console.log(txdata);
 											
 												// No longer use
 
-												await setAsync('qae_lastscanblock', thisblockheight);
-												await setAsync('qae_lastblockid', blockidcode);
+												await setAsync('pyrk_lastscanblock', thisblockheight);
+												await setAsync('pyrk_lastblockid', blockidcode);
 												
 												callback(null, count);
 										
@@ -563,8 +1340,10 @@ console.log(txdata);
 										{
 											// This needs to be handled.  TODO:	 Missing transactions when there should be some
 											callback(null, count);
+										
 										}
-									
+
+
 									});
 				
 								}
@@ -574,8 +1353,8 @@ console.log(txdata);
 							
 										// No longer use
 
-										await setAsync('qae_lastscanblock', thisblockheight);
-										await setAsync('qae_lastblockid', blockidcode);
+										await setAsync('pyrk_lastscanblock', thisblockheight);
+										await setAsync('pyrk_lastblockid', blockidcode);
 
 										try {
 											callback(null, count);
@@ -609,14 +1388,14 @@ console.log(txdata);
 				
 				
 				}
-			
+*/
+
 			},
 			function(err, n) {
 		
 				(async () => {
 			
 					await qdb.close();
-					await pgclient.end()
 				
 					scanLock = false;
 					scanLockTimer = 0;
@@ -656,7 +1435,7 @@ function newblocknotify()
 	}
 	else
 	{
-		downloadChain();
+		//downloadChain();
 	}
 	
 	return true;

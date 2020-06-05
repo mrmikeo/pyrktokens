@@ -25,17 +25,21 @@ const request	  = require('request');			 // Library for making http requests
 const publicIp	  = require('public-ip');		 // a helper to find out what our external IP is.	Needed for generating proper ring signatures
 const {promisify} = require('util');			 // Promise functions
 const asyncv3	  = require('async');			 // Async Helper
-const { Client }  = require('pg');				 // Postgres
-const qreditjs	  = require("qreditjs");
+const zmq 		  = require("zeromq");		     // For new block notifications
+const pyrkcore 	  = require('@pyrkcommunity/pyrkcore-lib'); // Pyrk core library for nodejs
+const Client	  = require('bitcoin-core');	 // Bitcoin RPC
 
-var iniconfig = ini.parse(fs.readFileSync('/etc/qae/qae.ini', 'utf-8'))
+var iniconfig = ini.parse(fs.readFileSync('/etc/pyrk/pyrk.ini', 'utf-8'))
+
+// Pyrk RPC
+var client = new Client({ host: iniconfig.pyrk_host, port: iniconfig.pyrk_port, username: iniconfig.pyrk_username, password: iniconfig.pyrk_password });
 
 // Mongo Connection Details
 const mongoconnecturl = iniconfig.mongo_connection_string;
 const mongodatabase = iniconfig.mongo_database;
 
 // MongoDB Library
-const qaeDB = require("./lib/qaeDB");
+const pyrkDB = require("./lib/pyrkDB");
 
 // Connect to Redis and setup some async call definitions
 const rclient	= redis.createClient(iniconfig.redis_port, iniconfig.redis_host,{detect_buffers: true});
@@ -90,7 +94,7 @@ var router = express.Router();
 
 // a test route to make sure everything is working (accessed at GET http://ip:port/api)
 router.get('/', function(req, res) {
-	res.json({ message: 'Qredit Always Evolving....	 Please see our API documentation' });	 
+	res.json({ message: 'Pyrk Simple Tokens....	 Please see our API documentation' });	 
 });
 	
 router.route('/status')
@@ -98,24 +102,12 @@ router.route('/status')
 	
 		(async () => {
 			
-			var pgclient = new Client({user: iniconfig.pg_username, database: iniconfig.pg_database, password: iniconfig.pg_password});
-
-			await pgclient.connect()
-			var dlblocks = await pgclient.query('SELECT * FROM blocks ORDER BY height DESC LIMIT 1')
-			await pgclient.end()
+			var scanned = await getAsync('pyrk_lastscanblock');
 			
-			var scanned = await getAsync('qae_lastscanblock');
+			var chaininfo = await client.command('getblockchaininfo');
+			var chainblocks = chaininfo.blocks;
 			
-			if (dlblocks && dlblocks.rows)
-			{
-				var downloadedblocks = dlblocks.rows[0].height;
-			}
-			else
-			{
-				var downloadedblocks = 0;
-			}
-			
-			message = {downloadedBlocks: parseInt(downloadedblocks), scannedBlocks: parseInt(scanned)};
+			message = {chainBlocks: parseInt(chainblocks), scannedBlocks: parseInt(scanned)};
 			
 			res.json(message);
 				
@@ -155,7 +147,7 @@ router.route('/tokens')
 
 		(async () => {
 		
-			var qdbapi = new qaeDB.default(mongoconnecturl, mongodatabase);
+			var qdbapi = new pyrkDB.default(mongoconnecturl, mongodatabase);
 		
 			var mclient = await qdbapi.connect();
 			qdbapi.setClient(mclient);
@@ -180,7 +172,7 @@ router.route('/token/:id')
 
 		(async () => {
 		
-			var qdbapi = new qaeDB.default(mongoconnecturl, mongodatabase);
+			var qdbapi = new pyrkDB.default(mongoconnecturl, mongodatabase);
 		
 			var mclient = await qdbapi.connect();
 			qdbapi.setClient(mclient);
@@ -205,7 +197,7 @@ router.route('/tokenWithMeta/:id')
 
 		(async () => {
 		
-			var qdbapi = new qaeDB.default(mongoconnecturl, mongodatabase);
+			var qdbapi = new pyrkDB.default(mongoconnecturl, mongodatabase);
 		
 			var mclient = await qdbapi.connect();
 			qdbapi.setClient(mclient);
@@ -233,7 +225,7 @@ router.route('/tokenByTxid/:txid')
 
 		(async () => {
 		
-			var qdbapi = new qaeDB.default(mongoconnecturl, mongodatabase);
+			var qdbapi = new pyrkDB.default(mongoconnecturl, mongodatabase);
 		
 			var mclient = await qdbapi.connect();
 			qdbapi.setClient(mclient);
@@ -274,7 +266,7 @@ router.route('/addresses')
 
 		(async () => {
 		
-			var qdbapi = new qaeDB.default(mongoconnecturl, mongodatabase);
+			var qdbapi = new pyrkDB.default(mongoconnecturl, mongodatabase);
 		
 			var mclient = await qdbapi.connect();
 			qdbapi.setClient(mclient);
@@ -299,7 +291,7 @@ router.route('/address/:addr')
 
 		(async () => {
 		
-		var qdbapi = new qaeDB.default(mongoconnecturl, mongodatabase);
+		var qdbapi = new pyrkDB.default(mongoconnecturl, mongodatabase);
 		
 			var mclient = await qdbapi.connect();
 			qdbapi.setClient(mclient);
@@ -342,7 +334,7 @@ router.route('/addressesByTokenId/:tokenid')
 
 		(async () => {
 		
-		var qdbapi = new qaeDB.default(mongoconnecturl, mongodatabase);
+		var qdbapi = new pyrkDB.default(mongoconnecturl, mongodatabase);
 		
 			var mclient = await qdbapi.connect();
 			qdbapi.setClient(mclient);
@@ -368,7 +360,7 @@ router.route('/balance/:tokenid/:address')
 
 		(async () => {
 		
-		var qdbapi = new qaeDB.default(mongoconnecturl, mongodatabase);
+		var qdbapi = new pyrkDB.default(mongoconnecturl, mongodatabase);
 		
 			var mclient = await qdbapi.connect();
 			qdbapi.setClient(mclient);
@@ -426,7 +418,7 @@ router.route('/transactions')
 
 		(async () => {
 		
-		var qdbapi = new qaeDB.default(mongoconnecturl, mongodatabase);
+		var qdbapi = new pyrkDB.default(mongoconnecturl, mongodatabase);
 		
 			var mclient = await qdbapi.connect();
 			qdbapi.setClient(mclient);
@@ -451,7 +443,7 @@ router.route('/transaction/:txid')
 
 		(async () => {
 		
-		var qdbapi = new qaeDB.default(mongoconnecturl, mongodatabase);
+		var qdbapi = new pyrkDB.default(mongoconnecturl, mongodatabase);
 		
 			var mclient = await qdbapi.connect();
 			qdbapi.setClient(mclient);
@@ -494,7 +486,7 @@ router.route('/transactions/:tokenid')
 
 		(async () => {
 		
-		var qdbapi = new qaeDB.default(mongoconnecturl, mongodatabase);
+		var qdbapi = new pyrkDB.default(mongoconnecturl, mongodatabase);
 		
 			var mclient = await qdbapi.connect();
 			qdbapi.setClient(mclient);
@@ -541,7 +533,7 @@ router.route('/transactions/:tokenid/:address')
 
 		(async () => {
 		
-			var qdbapi = new qaeDB.default(mongoconnecturl, mongodatabase);
+			var qdbapi = new pyrkDB.default(mongoconnecturl, mongodatabase);
 		
 			var mclient = await qdbapi.connect();
 			qdbapi.setClient(mclient);
@@ -583,7 +575,7 @@ router.route('/metadata/:txid')
 
 		(async () => {
 		
-		var qdbapi = new qaeDB.default(mongoconnecturl, mongodatabase);
+		var qdbapi = new pyrkDB.default(mongoconnecturl, mongodatabase);
 		
 			var mclient = await qdbapi.connect();
 			qdbapi.setClient(mclient);
@@ -626,7 +618,7 @@ router.route('/metadata/:tokenid')
 
 		(async () => {
 		
-		var qdbapi = new qaeDB.default(mongoconnecturl, mongodatabase);
+		var qdbapi = new pyrkDB.default(mongoconnecturl, mongodatabase);
 		
 			var mclient = await qdbapi.connect();
 			qdbapi.setClient(mclient);
@@ -673,7 +665,7 @@ router.route('/metadata/:tokenid/:address')
 
 		(async () => {
 		
-			var qdbapi = new qaeDB.default(mongoconnecturl, mongodatabase);
+			var qdbapi = new pyrkDB.default(mongoconnecturl, mongodatabase);
 		
 			var mclient = await qdbapi.connect();
 			qdbapi.setClient(mclient);
@@ -729,7 +721,7 @@ router.route('/tokensByOwner/:owner')
 
 		(async () => {
 		
-			var qdbapi = new qaeDB.default(mongoconnecturl, mongodatabase);
+			var qdbapi = new pyrkDB.default(mongoconnecturl, mongodatabase);
 		
 			var mclient = await qdbapi.connect();
 			qdbapi.setClient(mclient);
@@ -743,29 +735,6 @@ router.route('/tokensByOwner/:owner')
 		
 	});
 
-	
-router.route('/newblocknotify')
-	.post(function(req, res) {
-
-		const authorization = req.headers["authorization"];
-
-		// This will be authorization + verification
-		const token = authorization + webhookVerification;
-
-		// Make sure we block access if the token is invalid...
-		if (token !== webhookToken) {
-			return res.status(401).send("Unauthorized!");
-		}
-	
-		updateaccessstats(req);
-		
-		newblocknotify();
-
-		var message = {status: 'success'};
-
-		res.json(message);
-		
-	});
 	
 router.route('/peerInfo')
 	.get(function(req, res) {
@@ -785,7 +754,7 @@ router.route('/getHeight')
 	
 		updateaccessstats(req);
 		
-		rclient.get('qae_lastscanblock', function(err, reply)
+		rclient.get('pyrk_lastscanblock', function(err, reply)
 		{
 	
 			if (err)
@@ -817,7 +786,7 @@ router.route('/getRingSignature/:journalid')
 		
 		(async () => {
 		
-			var qdbapi = new qaeDB.default(mongoconnecturl, mongodatabase);
+			var qdbapi = new pyrkDB.default(mongoconnecturl, mongodatabase);
 		
 			var mclient = await qdbapi.connect();
 			qdbapi.setClient(mclient);
@@ -861,7 +830,7 @@ router.route('/getRingSignature/:journalid/:callerport')
 
 		(async () => {
 		
-			var qdbapi = new qaeDB.default(mongoconnecturl, mongodatabase);
+			var qdbapi = new pyrkDB.default(mongoconnecturl, mongodatabase);
 		
 			var mclient = await qdbapi.connect();
 			qdbapi.setClient(mclient);
@@ -912,7 +881,7 @@ router.route('/getJournals/:start/:end')
 
 		(async () => {
 		
-			var qdbapi = new qaeDB.default(mongoconnecturl, mongodatabase);
+			var qdbapi = new pyrkDB.default(mongoconnecturl, mongodatabase);
 		
 			var mclient = await qdbapi.connect();
 			qdbapi.setClient(mclient);
@@ -998,61 +967,31 @@ function initialize()
 		myIPAddress = await publicIp.v4();
 						
 		console.log("This IP Address is: " + myIPAddress);
-			
-		// Create Webhooks
-		if (iniconfig.webhooks_enabled == 1)
-		{
-			
-			console.log("Creating Webhook");
-			
-			request.get(iniconfig.webhook_node + '/webhooks', {json:true}, function (error, response, body)
-			{
 
-				if (body && body.data)
-				{
-				
-					var currentWebhooks = body.data;
-				
-					currentWebhooks.forEach( (row) => { 
-				
-						if (row.target == iniconfig.qae_webhook)
-						{
-							var hookId = row.id;
-							console.log("Delete Webhook #" + hookId);
-							request.delete(iniconfig.webhook_node + '/webhooks/' + hookId, {json:true}, function (error, response, body){});	
-						}
-				
-					});
-				
-				}
-					
-				// Create New Hook
-				var postVars = {};
-				postVars.event = 'block.applied';
-				postVars.target = iniconfig.qae_webhook;
-				postVars.conditions = [{key:'height', condition: 'gt', value: 0}];
-			
-				request.post(iniconfig.webhook_node + '/webhooks', {json:true, body: postVars, header: {Authorization: webhookToken}}, function (error, response, body){
-			
-					console.log(body);
-				
-					webhookToken = body.data.token;
-					webhookVerification = webhookToken.substring(32);
-			
-				});
-														
-			});
-			
-		}
-		
 		getSeedPeers();
 		
+		runZmq();
+		
 		// Defaults qm2/qm3
-		validatePeer('95.217.180.3', 80);
-		validatePeer('116.203.40.82', 80);
+		//validatePeer('95.217.180.3', 80);
+		//validatePeer('116.203.40.82', 80);
 		
 	})();		 
 
+}
+
+async function runZmq() {
+
+  const sock = new zmq.Subscriber
+
+  sock.connect("tcp://127.0.0.1:24242")
+  sock.subscribe()
+  console.log("Subscriber connected to port 24242")
+
+  for await (const [topic, msg] of sock) {
+    newblocknotify();
+  }
+  
 }
 
 // Main Functions
@@ -1081,7 +1020,7 @@ function validatePeer(peerip, peerport)
 	
 	(async () => {
 	
-		var qdbapi = new qaeDB.default(mongoconnecturl, mongodatabase);
+		var qdbapi = new pyrkDB.default(mongoconnecturl, mongodatabase);
 	
 		var mclient = await qdbapi.connect();
 		qdbapi.setClient(mclient);
@@ -1092,7 +1031,7 @@ function validatePeer(peerip, peerport)
 
 		qdbapi.close();
 		
-		if (dbreply)
+		if (dbreply && dbreply.length > 0)
 		{
 
 			var journalid = dbreply[0]['_id'];
@@ -1390,7 +1329,7 @@ function truncateToDecimals(num, dec = 2)
 function error_handle(error, caller = 'unknown', severity = 'error')
 {
 
-	var scriptname = 'qaeApi.js';
+	var scriptname = 'pyrkApi.js';
 
 	console.log("Error Handle has been called!");
 
