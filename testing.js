@@ -1,5 +1,11 @@
 const pyrkcore = require('@pyrkcommunity/pyrkcore-lib');
 
+
+var testnum = 1234;
+testnum = String(testnum).padStart(8, "0"); 
+
+console.log(testnum);
+
 /*
 var privateKey = new pyrkcore.PrivateKey();
 
@@ -42,6 +48,7 @@ wif: UBPM1dk7sGhssocHCCv9xZM6E5kkJQaJBm3hE4UGNJ1Z2FAc8jWs
 
 */
 
+/*
 var privateKey = pyrkcore.PrivateKey.fromWIF('UCkWn22Pt9MnDH1y7pA5TNmPrSP1FHLguj1wbW44Nqbd5rGhWBEo');
 
 var utxo = {
@@ -99,4 +106,4 @@ var transaction = new pyrkcore.Transaction()
 
     
 console.log(transaction.serialize({disableLargeFees: true, disableDustOutputs:true}));
-
+*/

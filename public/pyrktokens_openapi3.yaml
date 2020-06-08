@@ -1,0 +1,1879 @@
+openapi: 3.0.1
+info:
+  title: altilly API
+  description: |
+    <a href="https://www.altilly.com/user/profile/api">Create API keys in your profile</a> and use public API key as username and secret as password to authorize.<br /><br />
+    <h4>API Endpoint URL</h4>
+    The endpoint for our REST API is:  <code>https://api.altilly.com/api</code>
+    <br /><br />
+    <h4>Authentication</h4>
+    Our API uses HTTP Basic Auth for authenticated calls.
+    <br /><br />
+    <h4>Generate API Keys</h4>
+    You can generate API Keys here: <a href='/user/profile/api'><strong><u>https://www.altilly.com/user/profile/api</u></strong></a>
+    <br /><br />
+    <h4>Datetime Formatting</h4>
+    Unless otherwise stated, all timestamps are returned in ISO8601 format in UTC. Example: "2018-04-01T00:00:00Z" or "2018-04-01T00:00:00.000Z".   If a timestamp is returned as an Integer, then that is a Unix timestamp.
+    <br /><br />
+    <h4>Number Formatting</h4>
+    All finance data such as price, quantity, and fee should be arbitrary precision numbers and string representation. Example: "5.39300000"
+    <br /><br />
+    <h4>Helpful Classes</h4>
+    We have Python, PHP, and NodeJS classes available on our GitHub:  <a href="https://github.com/altilly/" target=new><strong><u>https://github.com/altilly/</u></strong></a>
+    <br /><br />
+    <h4>HTTP Status Codes</h4>
+    <code>200</code> OK Successful request<br />
+    <code>400</code> Bad Request. Returns JSON with the error message<br />
+    <code>401</code> Unauthorized. Authorization required or failed<br />
+    <code>403</code> Forbidden. Action is forbidden for API key<br />
+    <code>429</code> Too Many Requests. Your connection is being rate limited<br />
+    <code>500</code> Internal Server. Internal Server Error<br />
+    <code>503</code> Service Unavailable. Service is down for maintenance<br />
+    <code>504</code> Gateway Timeout. Request timeout expired
+    <br /><br />
+    <h4>Error Codes</h4>
+    <table class="table table-striped">
+    <thead>
+    <tr><td>Error Code</td><td>HTTP Status Code</td><td>Message</td><td>Details</td></tr>
+    </thead>
+    <tbody>
+    <tr>
+    <td>400</td>
+    <td>400</td>
+    <td style="text-align: left">Unknown error</td>
+    <td style="text-align: left">An unknown error occurred somewhere in the system</td>
+    </tr>
+    <tr>
+    <td>402</td>
+    <td>400</td>
+    <td style="text-align: left">Method not found</td>
+    <td style="text-align: left">The requested API method was not found</td>
+    </tr>
+    <tr>
+    <td>403</td>
+    <td>401</td>
+    <td style="text-align: left">Action is forbidden for account</td>
+    <td style="text-align: left"></td>
+    </tr>
+    <tr>
+    <td>429</td>
+    <td>429</td>
+    <td style="text-align: left">Too many requests</td>
+    <td style="text-align: left">Action is being rate limited for account</td>
+    </tr>
+    <tr>
+    <td>500</td>
+    <td>500</td>
+    <td style="text-align: left">Internal Server Error</td>
+    <td style="text-align: left"></td>
+    </tr>
+    <tr>
+    <td>503</td>
+    <td>503</td>
+    <td style="text-align: left">Service Unavailable</td>
+    <td style="text-align: left">Try it again later</td>
+    </tr>
+    <tr>
+    <td>504</td>
+    <td>504</td>
+    <td style="text-align: left">Gateway Timeout</td>
+    <td style="text-align: left">Check the result of your request later</td>
+    </tr>
+    <tr>
+    <td>1001</td>
+    <td>401</td>
+    <td style="text-align: left">Authorization required</td>
+    <td style="text-align: left"></td>
+    </tr>
+    <tr>
+    <td>1002</td>
+    <td>401</td>
+    <td style="text-align: left">Authorization failed</td>
+    <td style="text-align: left"></td>
+    </tr>
+    <tr>
+    <td>1003</td>
+    <td>403</td>
+    <td style="text-align: left">Action is forbidden for this API key</td>
+    <td style="text-align: left">Check permissions for API key</td>
+    </tr>
+    <tr>
+    <td>1004</td>
+    <td>401</td>
+    <td style="text-align: left">Unsupported authorisation method</td>
+    <td style="text-align: left">Use Basic authentication</td>
+    </tr>
+    <tr>
+    <td>2001</td>
+    <td>400</td>
+    <td style="text-align: left">Symbol not found</td>
+    <td style="text-align: left"></td>
+    </tr>
+    <tr>
+    <td>2002</td>
+    <td>400</td>
+    <td style="text-align: left">Currency not found</td>
+    <td style="text-align: left"></td>
+    </tr>
+    <tr>
+    <td>10001</td>
+    <td>400</td>
+    <td style="text-align: left">Validation error</td>
+    <td style="text-align: left">Input not valid</td>
+    </tr>
+    <tr>
+    <td>20001</td>
+    <td>400</td>
+    <td style="text-align: left">Insufficient funds</td>
+    <td style="text-align: left">Insufficient funds for creating order or any account operation</td>
+    </tr>
+    <tr>
+    <td>20002</td>
+    <td>400</td>
+    <td style="text-align: left">Order not found</td>
+    <td style="text-align: left">Attempt to get active order that  not existing, filled, canceled or expired.</td>
+    </tr>
+    <tr>
+    <td>20003</td>
+    <td>400</td>
+    <td style="text-align: left">Limit exceeded</td>
+    <td style="text-align: left">Withdrawal limit exceeded</td>
+    </tr>
+    <tr>
+    <td>20004</td>
+    <td>400</td>
+    <td style="text-align: left">Transaction not found</td>
+    <td style="text-align: left">Requested transaction not found</td>
+    </tr>
+    <tr>
+    <td>20005</td>
+    <td>400</td>
+    <td style="text-align: left">Payout not found</td>
+    <td style="text-align: left"></td>
+    </tr>
+    <tr>
+    <td>20006</td>
+    <td>400</td>
+    <td style="text-align: left">Payout already committed</td>
+    <td style="text-align: left"></td>
+    </tr>
+    <tr>
+    <td>20007</td>
+    <td>400</td>
+    <td style="text-align: left">Payout already rolled back</td>
+    <td style="text-align: left"></td>
+    </tr>
+    <tr>
+    <td>20008</td>
+    <td>400</td>
+    <td style="text-align: left">Duplicate clientOrderId</td>
+    <td style="text-align: left"></td>
+    </tr>
+    <tr>
+    <td>20010</td>
+    <td>400</td>
+    <td style="text-align: left">Address generation error</td>
+    <td style="text-align: left">Unable to generate a new deposit address.  Try request later.</td>
+    </tr>
+    <tr>
+    <td>20011</td>
+    <td>400</td>
+    <td style="text-align: left">Withdrawal not found</td>
+    <td style="text-align: left">The referenced withdrawal was not found.</td>
+    </tr>
+    <tr>
+    <td>20012</td>
+    <td>400</td>
+    <td style="text-align: left">Withdrawals disabled</td>
+    <td style="text-align: left">Withdrawals are disabled for this currency or system wide.  Check system status page.</td>
+    </tr>
+    <tr>
+    <td>20013</td>
+    <td>400</td>
+    <td style="text-align: left">Withdrawal amount below minimum</td>
+    <td style="text-align: left">Minimum withdrawal amount for any currency is Withdraw Fee * 2.</td>
+    </tr>
+    <tr>
+    <td>20014</td>
+    <td>400</td>
+    <td style="text-align: left">Withdrawal address invalid</td>
+    <td style="text-align: left">Ensure the address you are withdrawing to is correct.</td>
+    </tr>
+    <tr>
+    <td>20015</td>
+    <td>400</td>
+    <td style="text-align: left">Payment ID Required</td>
+    <td style="text-align: left">This currency requires a paymentId when making a withdrawal request.</td>
+    </tr>
+    <tr>
+    <td>20016</td>
+    <td>400</td>
+    <td style="text-align: left">Invalid confirmation code</td>
+    <td style="text-align: left">The provided confirmation code is incorrect.</td>
+    </tr>
+    <tr>
+    <td>20017</td>
+    <td>400</td>
+    <td style="text-align: left">Withdraw already confirmed</td>
+    <td style="text-align: left">The withdrawal request has already been confirmed.</td>
+    </tr>
+    </tbody>
+    </table>
+  version: 1.0.2
+servers:
+- url: https://api.altilly.com/api
+paths:
+  /public/symbol:
+    get:
+      tags:
+      - Public
+      summary: Available Currency Symbols
+      description: |
+        Get list of avialable Symbols (Currency Pairs). You can read more info at http://www.investopedia.com/terms/c/currencypair.asp
+      responses:
+        200:
+          description: An array of symbols
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Symbol'
+  /public/symbol/{symbol}:
+    get:
+      tags:
+      - Public
+      summary: Get symbol info
+      parameters:
+      - name: symbol
+        in: path
+        required: true
+        schema:
+          type: string
+      responses:
+        200:
+          description: Symbol configuration
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Symbol'
+        400:
+          description: Symbol not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+  /public/currency:
+    get:
+      tags:
+      - Public
+      summary: Available Currencies
+      description: |
+        Get list of avialable Symbols (Currency Pairs). You can read more info at http://www.investopedia.com/terms/c/currencypair.asp
+      responses:
+        200:
+          description: An array of currencies
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Currency'
+  /public/currency/{currency}:
+    get:
+      tags:
+      - Public
+      summary: Get currency info
+      parameters:
+      - name: currency
+        in: path
+        required: true
+        schema:
+          type: string
+      responses:
+        200:
+          description: Currency configuration
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Currency'
+        400:
+          description: Currency not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+  /public/systemstatus:
+    get:
+      tags:
+      - Public
+      summary: Get system status info
+      responses:
+        200:
+          description: System status information
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SystemStatus'
+        400:
+          description: No information available
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+  /public/addressinfo/{address}:
+    get:
+      tags:
+      - Public
+      summary: Get address info
+      parameters:
+      - name: address
+        in: path
+        required: true
+        schema:
+          type: string
+      responses:
+        200:
+          description: Address configuration
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AddressInfo'
+        400:
+          description: Address not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+  /public/ticker:
+    get:
+      tags:
+      - Public
+      summary: Ticker list for all symbols
+      description: |
+        The Ticker endpoint returns last 24H information about of all symbol.
+      responses:
+        200:
+          description: An array of products
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Ticker'
+  /public/ticker/{symbol}:
+    get:
+      tags:
+      - Public
+      summary: Ticker for symbol
+      description: |
+        The Ticker endpoint returns last 24H information about symbol.
+      parameters:
+      - name: symbol
+        in: path
+        required: true
+        schema:
+          type: string
+      responses:
+        200:
+          description: An array of products
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Ticker'
+  /public/simpletrades/{symbol}:
+    get:
+      tags:
+      - Public
+      summary: A simple format of trades in the symbol as used by Bitcoincharts and
+        Tradingview
+      description: |
+        This is the format used by Bitcoincharts and Tradingview.  Maximum 1000 results since the trade # "since" given
+      parameters:
+      - name: symbol
+        in: path
+        required: true
+        schema:
+          type: string
+      - name: since
+        in: query
+        schema:
+          type: string
+      responses:
+        200:
+          description: An array of simple trades
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SimpleTrade'
+  /public/trades/{symbol}:
+    get:
+      tags:
+      - Public
+      summary: Trades
+      parameters:
+      - name: symbol
+        in: path
+        required: true
+        schema:
+          type: string
+      - name: sort
+        in: query
+        description: Sort direction
+        schema:
+          type: string
+          default: DESC
+          enum:
+          - DESC
+          - ASC
+      - name: by
+        in: query
+        description: Filter field
+        schema:
+          type: string
+          default: timestamp
+          enum:
+          - timestamp
+          - id
+      - name: from
+        in: query
+        description: If filter by timestamp, then datetime in iso format or timestamp
+          in millisecond otherwise trade id
+        schema:
+          type: string
+      - name: till
+        in: query
+        description: If filter by timestamp, then datetime in iso format or timestamp
+          in millisecond otherwise trade id
+        schema:
+          type: string
+      - name: limit
+        in: query
+        description: Default 100.  Minimum value 1, Maximum value 1000
+        schema:
+          maximum: 1000
+          minimum: 1
+          type: integer
+          format: int32
+          default: 100
+      - name: offset
+        in: query
+        schema:
+          type: integer
+          format: int32
+      responses:
+        200:
+          description: An array of trades
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/PublicTrade'
+  /public/orderbook/{symbol}:
+    get:
+      tags:
+      - Public
+      summary: Orderbook
+      parameters:
+      - name: symbol
+        in: path
+        required: true
+        schema:
+          type: string
+      - name: limit
+        in: query
+        description: 0 - full orderbook otherwise number of levels
+        schema:
+          type: integer
+          default: 100
+      responses:
+        200:
+          description: Orderbook for symbol
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Orderbook'
+  /public/simpleorders/{symbol}:
+    get:
+      tags:
+      - Public
+      summary: Simple Orderbook format as used by Bitcoincharts and Tradingview.
+      parameters:
+      - name: symbol
+        in: path
+        required: true
+        schema:
+          type: string
+      - name: limit
+        in: query
+        description: 0 - full orderbook otherwise number of levels
+        schema:
+          type: integer
+          default: 100
+      responses:
+        200:
+          description: SimpleOrder for symbol
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SimpleOrder'
+  /public/candles/{symbol}:
+    get:
+      tags:
+      - Public
+      summary: Candles
+      parameters:
+      - name: symbol
+        in: path
+        required: true
+        schema:
+          type: string
+      - name: limit
+        in: query
+        description: Number of results to receive.  Default is 100.  Use 0 to receive
+          all available resultset.
+        schema:
+          type: integer
+          default: 100
+      - name: period
+        in: query
+        description: Time period between candlesticks.  Available options are 30MIN,
+          3HR, 8HR, 12HR, 24HR
+        schema:
+          type: string
+          default: 30MIN
+          enum:
+          - 30MIN
+          - 3HR
+          - 8HR
+          - 12HR
+          - 24HR
+      responses:
+        200:
+          description: List of candles
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Candle'
+  /order:
+    get:
+      tags:
+      - Trading
+      summary: List your current open orders
+      description: List of your currently open orders.
+      parameters:
+      - name: symbol
+        in: query
+        description: Leave blank for all markets
+        schema:
+          type: string
+      responses:
+        200:
+          description: List of active orders
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Order'
+        default:
+          description: Unexpected error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+      security:
+      - BasicAuth: []
+    post:
+      tags:
+      - Trading
+      summary: Create new order
+      requestBody:
+        content:
+          application/x-www-form-urlencoded:
+            schema:
+              required:
+              - quantity
+              - side
+              - symbol
+              properties:
+                clientOrderId:
+                  type: string
+                symbol:
+                  type: string
+                side:
+                  type: string
+                  default: sell
+                  enum:
+                  - sell
+                  - buy
+                type:
+                  type: string
+                  description: Order type.  See https://www.altilly.com/page/orderoptions
+                  default: limit
+                  enum:
+                  - limit
+                  - market
+                  - stopLimit
+                  - stopMarket
+                  - tpLimit
+                  - tpMarket
+                timeInForce:
+                  type: string
+                  description: Time in force
+                  default: GTC
+                  enum:
+                  - GTC
+                  - IOC
+                  - FOK
+                  - Day
+                  - GTD
+                quantity:
+                  type: string
+                price:
+                  type: string
+                stopPrice:
+                  type: string
+                  description: Used for stopMarket and stopLimit order types.  See
+                    https://www.altilly.com/page/orderoptions
+                tpPrice:
+                  type: string
+                  description: Used for tpMarket and tpLimit order types.  See https://www.altilly.com/page/orderoptions
+                expireTime:
+                  type: string
+                  format: date-time
+                strictValidate:
+                  type: boolean
+                  description: Strict validate amount and price precision without
+                    truncation.  Setting true will return an error if your quantity/price
+                    doesn't match increment/tick size.  Default false will truncate
+                    values to allowed number of decimal places.
+                  default: false
+        required: true
+      responses:
+        200:
+          description: Success order create
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Order'
+        400:
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        401:
+          description: Authorisation required
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        default:
+          description: Unexpected error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+      security:
+      - BasicAuth: []
+    delete:
+      tags:
+      - Trading
+      summary: Cancel all open orders
+      description: |
+        Cancel a group of orders.  Enter market symbol to cancel all open orders in a single market.  Leave symbol empty to cancel all orders in all markets.
+      responses:
+        200:
+          description: Canceled orders
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Order'
+        401:
+          description: Authorisation required
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        default:
+          description: Unexpected error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+      security:
+      - BasicAuth: []
+  /order/{clientOrderId_UUID}:
+    get:
+      tags:
+      - Trading
+      summary: Get a single order by clientOrderId -or- UUID
+      description: |
+        Get a single order by clientOrderId or UUID. clientOrderId is assigned by the user, UUID is assigned by the server
+      parameters:
+      - name: clientOrderId_UUID
+        in: path
+        required: true
+        schema:
+          type: string
+      responses:
+        200:
+          description: Active order
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Order'
+        default:
+          description: Unexpected error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+      security:
+      - BasicAuth: []
+    delete:
+      tags:
+      - Trading
+      summary: Cancel an order by clientOrderId -or- UUID
+      description: |
+        Cancel an order by clientOrderId -or- UUID
+      parameters:
+      - name: clientOrderId_UUID
+        in: path
+        required: true
+        schema:
+          type: string
+      responses:
+        200:
+          description: Canceled order
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Order'
+        default:
+          description: Unexpected error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+      security:
+      - BasicAuth: []
+  /trading/balance:
+    get:
+      tags:
+      - Trading
+      summary: Get basic trading balance
+      description: This returns available trading balance for each currency
+      responses:
+        200:
+          description: Array of balances
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/BasicBalance'
+        default:
+          description: Unexpected error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+      security:
+      - BasicAuth: []
+  /trading/fee/{symbol}:
+    get:
+      tags:
+      - Trading
+      summary: Get trading fee rate
+      parameters:
+      - name: symbol
+        in: path
+        required: true
+        schema:
+          type: string
+      responses:
+        200:
+          description: Trading fee rates
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TradingFee'
+      security:
+      - BasicAuth: []
+  /history/trades:
+    get:
+      tags:
+      - Trading History
+      summary: Get your historical trades
+      parameters:
+      - name: symbol
+        in: query
+        schema:
+          type: string
+      - name: sort
+        in: query
+        description: Sort direction
+        schema:
+          type: string
+          default: DESC
+          enum:
+          - DESC
+          - ASC
+      - name: by
+        in: query
+        description: Filter field
+        schema:
+          type: string
+          default: timestamp
+          enum:
+          - timestamp
+          - id
+      - name: from
+        in: query
+        description: If filter by timestamp, then datetime in iso format or timestamp
+          in millisecond otherwise trade id
+        schema:
+          type: string
+      - name: till
+        in: query
+        description: If filter by timestamp, then datetime in iso format or timestamp
+          in millisecond otherwise trade id
+        schema:
+          type: string
+      - name: limit
+        in: query
+        description: Default 100.  Minimum value 1, Maximum value 1000
+        schema:
+          maximum: 1000
+          minimum: 1
+          type: integer
+          format: int32
+          default: 100
+      - name: offset
+        in: query
+        schema:
+          type: integer
+          format: int32
+      responses:
+        200:
+          description: List of trades
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Trade'
+        default:
+          description: Unexpected error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+      security:
+      - BasicAuth: []
+  /history/order:
+    get:
+      tags:
+      - Trading History
+      summary: Get your historical orders - filled or cancelled
+      parameters:
+      - name: symbol
+        in: query
+        schema:
+          type: string
+      - name: historytype
+        in: query
+        description: History Type
+        required: true
+        schema:
+          type: string
+          default: filled
+          enum:
+          - filled
+          - cancelled
+      - name: sort
+        in: query
+        description: Sort direction
+        schema:
+          type: string
+          default: DESC
+          enum:
+          - DESC
+          - ASC
+      - name: by
+        in: query
+        description: Filter field
+        schema:
+          type: string
+          default: timestamp
+          enum:
+          - timestamp
+          - id
+      - name: from
+        in: query
+        description: If filter by timestamp, then datetime in iso format or timestamp
+          in millisecond otherwise order id
+        schema:
+          type: string
+      - name: till
+        in: query
+        description: If filter by timestamp, then datetime in iso format or timestamp
+          in millisecond otherwise order id
+        schema:
+          type: string
+      - name: limit
+        in: query
+        schema:
+          maximum: 1000
+          minimum: 1
+          type: integer
+          format: int32
+          default: 100
+      - name: offset
+        in: query
+        schema:
+          type: integer
+          format: int32
+      - name: clientOrderId
+        in: query
+        schema:
+          type: string
+      responses:
+        200:
+          description: List of orders
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Order'
+        default:
+          description: Unexpected error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+      security:
+      - BasicAuth: []
+  /history/trades/{clientOrderId_UUID}:
+    get:
+      tags:
+      - Trading History
+      summary: Get your historical trades by specified clientOrderId -or- order UUID
+      parameters:
+      - name: clientOrderId_UUID
+        in: path
+        required: true
+        schema:
+          type: string
+      responses:
+        200:
+          description: List of trades by order
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Trade'
+        default:
+          description: Unexpected error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+      security:
+      - BasicAuth: []
+  /account/balance:
+    get:
+      tags:
+      - Account
+      summary: Get detailed acccount balance information
+      description: This returns available trading balance / funds held for orders
+        / pending deposits and is a little slower than the tradingbalance call
+      responses:
+        200:
+          description: Array of main balances
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/DetailedBalance'
+        default:
+          description: Unexpected error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+      security:
+      - BasicAuth: []
+  /account/transactions:
+    get:
+      tags:
+      - Account
+      summary: Get account transactions (Deposits & Withdrawals)
+      parameters:
+      - name: currency
+        in: query
+        schema:
+          type: string
+      - name: sort
+        in: query
+        description: Sort direction
+        schema:
+          type: string
+          default: DESC
+          enum:
+          - DESC
+          - ASC
+      - name: by
+        in: query
+        description: Filter field
+        schema:
+          type: string
+          default: timestamp
+          enum:
+          - timestamp
+      - name: from
+        in: query
+        description: Datetime in iso format or timestamp in millisecond.
+        schema:
+          type: string
+      - name: till
+        in: query
+        description: Datetime in iso format or timestamp in millisecond.
+        schema:
+          type: string
+      - name: limit
+        in: query
+        schema:
+          maximum: 1000
+          minimum: 1
+          type: integer
+          format: int32
+          default: 100
+      - name: offset
+        in: query
+        schema:
+          type: integer
+          format: int32
+      responses:
+        200:
+          description: Array of transactions
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Transaction'
+      security:
+      - BasicAuth: []
+  /account/transactions/{transactionId}:
+    get:
+      tags:
+      - Account
+      summary: Get account transactions by transactionId
+      parameters:
+      - name: transactionId
+        in: path
+        required: true
+        schema:
+          type: string
+      responses:
+        200:
+          description: List of matching transactions
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Transaction'
+      security:
+      - BasicAuth: []
+  /account/crypto/withdraw:
+    post:
+      tags:
+      - Account
+      summary: Withdraw crypto
+      description: Performs a withdrawal of a cryptocurrency to the requested address.  Withdrawal
+        requests submitted via the API can only be confirmed/committed via the API.
+      requestBody:
+        content:
+          application/x-www-form-urlencoded:
+            schema:
+              required:
+              - address
+              - amount
+              - currency
+              properties:
+                currency:
+                  type: string
+                amount:
+                  type: string
+                address:
+                  type: string
+                paymentId:
+                  type: string
+                includeFee:
+                  type: boolean
+                  description: If enabled, then fee will be subtracted from amount.
+                    Otherwise, the fee is added to the amount.
+                  default: false
+                autoCommit:
+                  type: boolean
+                  description: If Auto commit disabled you should commit it or rollback
+                    within 1 hour. After 1 hour, the transaction will expired automatically
+                    be rolled back.
+                  default: false
+        required: true
+      responses:
+        200:
+          description: Transaction Id
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  id:
+                    type: string
+                  currencyCode:
+                    type: string
+                  address:
+                    type: string
+                  paymentId:
+                    type: string
+                  confirmCode:
+                    type: string
+                  totalAmount:
+                    type: string
+                  feeAmount:
+                    type: string
+                  receiveAmount:
+                    type: string
+                  autoCommit:
+                    type: boolean
+                    default: false
+                  committed:
+                    type: boolean
+                    default: false
+      security:
+      - BasicAuth: []
+  /account/crypto/withdraw/{id}:
+    put:
+      tags:
+      - Account
+      summary: Commit withdraw crypto
+      description: Commit / Confirm the requested withdrawal if autoCommit was set
+        to false
+      parameters:
+      - name: id
+        in: path
+        description: The ID of the transaction from the withdraw request
+        required: true
+        schema:
+          type: string
+      requestBody:
+        content:
+          application/x-www-form-urlencoded:
+            schema:
+              required:
+              - confirmCode
+              properties:
+                confirmCode:
+                  type: string
+                  description: The confirmCode from the withdraw request
+        required: true
+      responses:
+        200:
+          description: Commit result
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WithdrawConfirm'
+      security:
+      - BasicAuth: []
+    delete:
+      tags:
+      - Account
+      summary: Rollback withdraw crypto
+      description: Cancel / Rollback a withdrawal request.  You may also request cancellation
+        via the website interface
+      parameters:
+      - name: id
+        in: path
+        description: The ID of the transaction from the withdraw request
+        required: true
+        schema:
+          type: string
+      responses:
+        200:
+          description: Rollback result
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WithdrawConfirm'
+      security:
+      - BasicAuth: []
+  /account/crypto/address/{currency}:
+    get:
+      tags:
+      - Account
+      summary: Get deposit crypro address
+      parameters:
+      - name: currency
+        in: path
+        required: true
+        schema:
+          type: string
+      responses:
+        200:
+          description: Crypto address for deposit
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Address'
+      security:
+      - BasicAuth: []
+    post:
+      tags:
+      - Account
+      summary: Create new deposit crypro address
+      parameters:
+      - name: currency
+        in: path
+        required: true
+        schema:
+          type: string
+      responses:
+        200:
+          description: Crypto address for deposit
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Address'
+      security:
+      - BasicAuth: []
+components:
+  schemas:
+    Currency:
+      type: object
+      properties:
+        id:
+          type: string
+          description: Currency code
+        fullName:
+          type: string
+        crypto:
+          type: boolean
+          description: True for cryptocurrencies, false for fiat, ICO and others.
+        payinEnabled:
+          type: boolean
+          description: True if cryptocurrency support generate adress or paymentId
+            for deposits
+        payinPaymentId:
+          type: boolean
+          description: True if cryptocurrency requred use paymentId for deposits
+        payinConfirmations:
+          type: integer
+          description: Confirmations count for cryptocurrency deposits
+        payoutEnabled:
+          type: boolean
+        payoutFee:
+          type: string
+          description: Default withdraw fee
+        payoutIsPaymentId:
+          type: boolean
+          description: True if cryptocurrency allow use paymentId for withdraw
+        delisted:
+          type: boolean
+          description: True if currency delisted (stopped deposit and trading)
+        coininfo:
+          type: array
+          example:
+            name: Bitcoin
+            circulation: "10000000"
+            marketcap: "129384738393"
+            developer: Bitcoin Core Team
+            twitter: twittername
+            telegram: telegram url
+            reddit: reddit url
+            facebook: facebook url
+            youtube: youtube url
+            medium: medium url
+            instagram: instagram url
+            discord: discord url
+            slack: slack url
+            website: website url
+            explorer: explorer url
+            sourcecode: sourcecode url
+            announcement: announcement url
+            premine: yes/no
+            pospowother: POS, POSv, POW, etc
+            algorithm: SHA-256, Scrypt, etc
+            price_usd: "7500"
+            price_btc: "1"
+            price_eth: "16.083738"
+            price_ltc: "89.294384"
+            created_at: date record created
+            updated_at: date information updated
+          items:
+            type: object
+            properties:
+              name:
+                type: string
+              circulation:
+                type: integer
+              marketcap:
+                type: integer
+              developer:
+                type: string
+              twitter:
+                type: string
+              telegram:
+                type: string
+              reddit:
+                type: string
+              facebook:
+                type: string
+              youtube:
+                type: string
+              medium:
+                type: string
+              instagram:
+                type: string
+              discord:
+                type: string
+              slack:
+                type: string
+              website:
+                type: string
+              explorer:
+                type: string
+              sourcecode:
+                type: string
+              announcement:
+                type: string
+              premine:
+                type: string
+              pospowother:
+                type: string
+              algorithm:
+                type: string
+              price_usd:
+                type: string
+              price_btc:
+                type: string
+              price_eth:
+                type: string
+              price_ltc:
+                type: string
+              created_at:
+                type: string
+                format: date-time
+              updated_at:
+                type: string
+                format: date-time
+    AddressInfo:
+      type: object
+      properties:
+        address:
+          type: string
+          description: Deposit address
+        ticker:
+          type: string
+          description: Asset ticker
+        name:
+          type: string
+          description: Asset name
+        isours:
+          type: boolean
+          description: Is an Altilly address
+        isverified:
+          type: boolean
+          description: Is user of address verified
+        verificationtype:
+          type: string
+          description: Verification type
+        verificationlevel:
+          type: integer
+          description: Verification level
+    BasicBalance:
+      type: object
+      properties:
+        currency:
+          type: string
+        available:
+          type: string
+          description: Amount available to spend
+    DetailedBalance:
+      type: object
+      properties:
+        currency:
+          type: string
+        available:
+          type: string
+          description: Amount available to spend
+        reserved:
+          type: string
+          description: Amount reserved on orders or payout
+        pending:
+          type: string
+          description: Amount of pending deposits
+    Ticker:
+      type: object
+      properties:
+        symbol:
+          type: string
+        ask:
+          type: string
+          description: Best ASK.
+        bid:
+          type: string
+          description: Best BID.
+        last:
+          type: string
+          description: Last trade price
+        low:
+          type: string
+          description: Min trade price of the last 24 hours.
+        high:
+          type: string
+          description: Max trade price of the last 24 hours.
+        open:
+          type: string
+          description: Trade price 24 hours ago.
+        volume:
+          type: string
+          description: Trading volume in commoduty currency of the last 24 hours.
+        volumeQuote:
+          type: string
+          description: Trading volume in currency of the last 24 hours.
+        timestamp:
+          type: string
+          description: Actual timestamp.
+          format: date-time
+    PublicTrade:
+      type: object
+      properties:
+        id:
+          type: integer
+        uuid:
+          type: string
+        price:
+          type: string
+        quantity:
+          type: string
+        side:
+          type: string
+          enum:
+          - sell
+          - buy
+        timestamp:
+          type: string
+          format: date-time
+      example:
+        id: 76502536
+        uuid: 30befc17-93ee-4d1f-8164-e97f3a9b3ad8
+        price: "0.012285"
+        quantity: "6.754"
+        side: sell
+        timestamp: 2017-01-10T12:00:00.672Z
+    SimpleTrade:
+      type: object
+      properties:
+        tid:
+          type: integer
+        price:
+          type: string
+        amount:
+          type: string
+        date:
+          type: integer
+      example:
+        tid: 765536
+        price: "0.012285"
+        amount: "6.754"
+        timestamp: 1399210160
+    Orderbook:
+      type: object
+      properties:
+        ask:
+          type: array
+          example:
+            price: "0.012285"
+            size: "6.754"
+          items:
+            type: object
+            properties:
+              price:
+                type: string
+              size:
+                type: string
+        bid:
+          type: array
+          example:
+            price: "0.012106"
+            size: "43.167"
+          items:
+            type: object
+            properties:
+              price:
+                type: string
+              size:
+                type: string
+        timestamp:
+          type: string
+          format: date-time
+    SimpleOrder:
+      type: object
+      properties:
+        asks:
+          type: array
+          items:
+            type: string
+        bids:
+          type: array
+          items:
+            type: string
+    TradingFee:
+      type: object
+      properties:
+        takeLiquidityRate:
+          type: string
+        provideLiquidityRate:
+          type: string
+    Symbol:
+      type: object
+      properties:
+        id:
+          type: string
+          description: The trading symbol
+        baseCurrency:
+          type: string
+          description: The main trading currency for this symbol
+        quoteCurrency:
+          type: string
+          description: The secondary trading currency for this symbol
+        quantityIncrement:
+          type: string
+          description: All quantities must be divisible by this number, and cannot
+            be less than this number
+        tickSize:
+          type: string
+          description: All prices must be divisible by this number, and cannot be
+            less than this number
+        takeLiquidityRate:
+          type: string
+          description: The buy/sell trading fee for taker orders.  Taker orders remove
+            an item from the order books.
+        provideLiquidityRate:
+          type: string
+          description: The buy/sell trading fee for maker orders.   Maker orders add
+            an item to the order books.
+        feeCurrency:
+          type: string
+          description: The currency in which fees are taken.
+      example:
+        id: ETHBTC
+        baseCurrency: ETH
+        quoteCurrency: BTC
+        quantityIncrement: 0.001
+        tickSize: 1.0E-6
+        takeLiquidityRate: 0.001
+        provideLiquidityRate: -1.0E-4
+        feeCurrency: BTC
+    Order:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+          example: 129833
+        uuid:
+          type: string
+          example: 1f816ff6-c2de-450f-a364-1eb74a901835
+        clientOrderId:
+          type: string
+          example: f4307c6e507e49019907c917b6d7a084
+        symbol:
+          type: string
+          example: ETHBTC
+        side:
+          type: string
+          example: sell
+          enum:
+          - sell
+          - buy
+        status:
+          type: string
+          example: partiallyFilled
+          enum:
+          - new
+          - suspended
+          - partiallyFilled
+          - filled
+          - canceled
+          - expired
+          - pending
+        type:
+          type: string
+          example: limit
+          enum:
+          - limit
+          - market
+          - stopLimit
+          - stopMarket
+        timeInForce:
+          type: string
+          example: GTC
+          enum:
+          - GTC
+          - IOC
+          - FOK
+          - Day
+          - GTD
+        stopPrice:
+          type: string
+          example: "0.01200000"
+        expireTime:
+          type: string
+          format: date-time
+        price:
+          type: string
+          example: "0.01138400"
+        quantity:
+          type: string
+          example: "13.94200000"
+        cumQuantity:
+          type: string
+          example: "5.24000000"
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+        tradesReport:
+          type: array
+          items:
+            type: object
+            properties:
+              id:
+                type: integer
+                format: int64
+              uuid:
+                type: string
+              quantity:
+                type: string
+              price:
+                type: string
+              fee:
+                type: string
+              timestamp:
+                type: string
+                format: date-time
+            example:
+              id: 23983298
+              uuid: 1f816ff6-c2de-450f-a364-1eb74a901835
+              quantity: "2.39300000"
+              price: "0.01138400"
+              fee: "0.00000000"
+              timestamp: 2017-01-19T15:23:54.876Z
+    Trade:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+        uuid:
+          type: string
+        clientOrderId:
+          type: string
+        symbol:
+          type: string
+        side:
+          type: string
+          enum:
+          - sell
+          - buy
+        quantity:
+          type: string
+        fee:
+          type: string
+        feeisbonus:
+          type: boolean
+          description: If the fee indicated is a market maker bonus (negative fee)
+        price:
+          type: string
+        timestamp:
+          type: string
+          format: date-time
+      example:
+        id: 23632839
+        uuid: 1f816ff6-c2de-450f-a364-1eb74a901835
+        clientOrderId: f4307c6e507e49019907c917b6d7a084
+        orderUuid: 34566ff6-c1ae-487f-a329-1eb74a928365
+        symbol: ETHBTC
+        side: sell
+        quantity: "13.942"
+        fee: "0.00000000"
+        feisbonus: false
+        price: "0.011384"
+        timestamp: 2017-01-16T14:18:47.321Z
+    Transaction:
+      type: object
+      properties:
+        id:
+          type: string
+        currency:
+          type: string
+        amount:
+          type: string
+        fee:
+          type: string
+        address:
+          type: string
+        paymentId:
+          type: string
+        transactionId:
+          type: string
+        status:
+          type: string
+          enum:
+          - created
+          - pending
+          - failed
+          - success
+        type:
+          type: string
+          enum:
+          - deposit
+          - withdraw
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+    Address:
+      type: object
+      properties:
+        currency:
+          type: string
+        address:
+          type: string
+        paymentId:
+          type: string
+        depositCount:
+          type: integer
+          format: int32
+    WithdrawConfirm:
+      type: object
+      properties:
+        result:
+          type: boolean
+      example:
+        result: true
+    Candle:
+      type: object
+      properties:
+        timestamp:
+          type: string
+          format: date-time
+        open:
+          type: string
+        close:
+          type: string
+        min:
+          type: string
+        max:
+          type: string
+        volume:
+          type: string
+        volumeQuote:
+          type: string
+    SystemStatus:
+      type: array
+      items:
+        type: object
+        properties:
+          ticker:
+            type: string
+          name:
+            type: string
+          assettype:
+            type: string
+          logo:
+            type: string
+          depositstatus:
+            type: integer
+          withdrawstatus:
+            type: integer
+          tradeingstatus:
+            type: integer
+          pendingdeposits:
+            type: integer
+          pendingwithdrawals:
+            type: integer
+          avgdeposittime:
+            type: integer
+          avgwithdrawtime:
+            type: integer
+          maintenancenotes:
+            type: string
+          on_deposit:
+            type: string
+          pending_deposit:
+            type: string
+          pending_withdrawal:
+            type: string
+          in_depwallet:
+            type: string
+          in_wdwallet:
+            type: string
+          in_transit:
+            type: string
+          in_safewallet:
+            type: string
+          balance:
+            type: string
+          balancepercent:
+            type: string
+          last_update:
+            type: string
+            format: date-time
+    Error:
+      type: object
+      properties:
+        error:
+          type: object
+          properties:
+            code:
+              type: integer
+              format: int32
+            message:
+              type: string
+              enum:
+              - Internal Server Error
+              - Gateway Timeout
+              - Service Unavailable
+              - Symbol not found
+              - Authorisation required
+              - Authorisation failed
+              - Validation error
+              - Insufficient funds
+            description:
+              type: string
+  securitySchemes:
+    BasicAuth:
+      type: http
+      description: |
+        You should use apiKey and apiSecret as login & password. [Create api key](https://www.altilly.com/user/profile/api)
+      scheme: basic

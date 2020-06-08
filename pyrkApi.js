@@ -1,12 +1,11 @@
 /*
 *
-* QAE - Version 1.1.1
+* Pyrk Tokens - Version 1.1.1
 *
-* Qredit Always Evolving
 *
-* A simplified token management system for the Qredit network
+* A simplified token management system for the Pyrk network
 *
-* QAEApi
+* pyrkApi - API Interface for Pyrk Tokens
 *
 */
 
@@ -28,6 +27,7 @@ const asyncv3	  = require('async');			 // Async Helper
 const zmq 		  = require("zeromq");		     // For new block notifications
 const pyrkcore 	  = require('@pyrkcommunity/pyrkcore-lib'); // Pyrk core library for nodejs
 const Client	  = require('bitcoin-core');	 // Bitcoin RPC
+const path 		  = require('path');
 
 var iniconfig = ini.parse(fs.readFileSync('/etc/pyrk/pyrk.ini', 'utf-8'))
 
@@ -81,6 +81,12 @@ app.use(bodyParser.urlencoded({ extended: true }));
 app.use(bodyParser.json());
 app.use(cors());
 
+
+app.set('views', path.join(__dirname, 'views'));
+app.set('view engine', 'twig');
+app.use(express.static(path.join(__dirname, 'public')));
+
+
 var port = iniconfig.api_port;
 
 // We will keep in memory the ips that connect to us
@@ -92,9 +98,11 @@ var accessstats = [];
 // get an instance of the express Router
 var router = express.Router();				
 
-// a test route to make sure everything is working (accessed at GET http://ip:port/api)
+// Api Specification Route
 router.get('/', function(req, res) {
-	res.json({ message: 'Pyrk Simple Tokens....	 Please see our API documentation' });	 
+
+	res.render('index');
+
 });
 	
 router.route('/status')
@@ -190,6 +198,22 @@ router.route('/tokenWithMeta/:id')
 	.get(function(req, res) {
 
 		var tokenid = req.params.id;
+
+		var limit = 100;
+
+		if (req.query.limit)
+		{
+			limit = parseInt(req.query.limit);
+		}
+
+		var page = 1;
+
+		if (req.query.page)
+		{
+			page = parseInt(req.query.page);
+		}
+		
+		var skip = (page - 1) * limit;
 		
 		updateaccessstats(req);
 		
@@ -204,7 +228,7 @@ router.route('/tokenWithMeta/:id')
 			
 			message = await qdbapi.findDocument('tokens', {'tokenDetails.tokenIdHex': tokenid});
 			
-			message.metadata = await qdbapi.findDocuments('metadata', {"metaDetails.tokenIdHex":tokenid}, 9999, {"metaDetails.timestamp_unix":1, "metaDetails.chunk":1}, 0);
+			message.metadata = await qdbapi.findDocuments('metadata', {"metaDetails.tokenIdHex":tokenid}, limit, {"metaDetails.timestamp_unix":-1}, skip);
 			
 			qdbapi.close();
 			
@@ -376,7 +400,7 @@ router.route('/balance/:tokenid/:address')
 			if (message && message.tokenBalance)
 			{
 			
-				var humanbal = new Big(message.tokenBalance).div(Big(10).pow(message.tokenDecimals)).toFixed(message.tokenDecimals);
+				var humanbal = new Big(message.tokenBalance).toFixed(8);
 				res.json(humanbal);
 				
 			}
@@ -391,6 +415,132 @@ router.route('/balance/:tokenid/:address')
 				
 	});
 
+router.route('/tokenaddress/:tokenid/:address')
+	.get(function(req, res) {
+
+		var addr = req.params.address;
+		var tokenid = req.params.tokenid;
+		
+		updateaccessstats(req);
+		
+		var message = {};
+
+		(async () => {
+		
+		var qdbapi = new pyrkDB.default(mongoconnecturl, mongodatabase);
+		
+			var mclient = await qdbapi.connect();
+			qdbapi.setClient(mclient);
+
+			var rawRecordId = addr + '.' + tokenid;
+			//var recordId = crypto.createHash('md5').update(rawRecordId).digest('hex');
+			var recordId = SparkMD5.hash(rawRecordId);
+			
+			message = await qdbapi.findDocument('addresses', {"recordId": recordId});
+
+			qdbapi.close();
+			
+			if (message && message.tokenBalance)
+			{
+			
+				res.json(message);
+				
+			}
+			else
+			{
+			
+				res.json({});
+			
+			}
+		
+		})();
+				
+	});
+	
+router.route('/ismetaauth/:tokenid/:address')
+	.get(function(req, res) {
+
+		var addr = req.params.address;
+		var tokenid = req.params.tokenid;
+		
+		updateaccessstats(req);
+		
+		var message = {};
+
+		(async () => {
+		
+		var qdbapi = new pyrkDB.default(mongoconnecturl, mongodatabase);
+		
+			var mclient = await qdbapi.connect();
+			qdbapi.setClient(mclient);
+
+			var rawRecordId = addr + '.' + tokenid;
+			//var recordId = crypto.createHash('md5').update(rawRecordId).digest('hex');
+			var recordId = SparkMD5.hash(rawRecordId);
+			
+			message = await qdbapi.findDocument('addresses', {"recordId": recordId});
+
+			qdbapi.close();
+			
+			if (message && message.isMetaAuth == true)
+			{
+			
+				res.json({isMetaAuth: true});
+				
+			}
+			else
+			{
+			
+				res.json({isMetaAuth: false});
+			
+			}
+		
+		})();
+				
+	});
+
+router.route('/isowner/:tokenid/:address')
+	.get(function(req, res) {
+
+		var addr = req.params.address;
+		var tokenid = req.params.tokenid;
+		
+		updateaccessstats(req);
+		
+		var message = {};
+
+		(async () => {
+		
+		var qdbapi = new pyrkDB.default(mongoconnecturl, mongodatabase);
+		
+			var mclient = await qdbapi.connect();
+			qdbapi.setClient(mclient);
+
+			var rawRecordId = addr + '.' + tokenid;
+			//var recordId = crypto.createHash('md5').update(rawRecordId).digest('hex');
+			var recordId = SparkMD5.hash(rawRecordId);
+			
+			message = await qdbapi.findDocument('addresses', {"recordId": recordId});
+
+			qdbapi.close();
+			
+			if (message && message.isOwner == true)
+			{
+			
+				res.json({isOwner: true});
+				
+			}
+			else
+			{
+			
+				res.json({isOwner: false});
+			
+			}
+		
+		})();
+				
+	});
+	
 router.route('/transactions')
 	.get(function(req, res) {
 
@@ -456,6 +606,32 @@ router.route('/transaction/:txid')
 		})();
 				
 	});
+
+router.route('/transaction/:address/:txid')
+	.get(function(req, res) {
+
+		var txid = req.params.txid;
+		var address = req.params.address;
+		
+		updateaccessstats(req);
+		
+		var message = [];
+
+		(async () => {
+		
+		var qdbapi = new pyrkDB.default(mongoconnecturl, mongodatabase);
+		
+			var mclient = await qdbapi.connect();
+			qdbapi.setClient(mclient);
+			message = await qdbapi.findDocuments('transactions', {$and : [{ $or : [ {"transactionDetails.senderAddress" : address},{"transactionDetails.sendOutput.address" : address}]}, { "txid":txid }]});
+
+			qdbapi.close();
+			
+			res.json(message);
+		
+		})();
+				
+	});
 	
 router.route('/transactions/:tokenid')
 	.get(function(req, res) {
@@ -503,7 +679,59 @@ router.route('/transactions/:tokenid')
 				
 	});
 
-router.route('/transactions/:tokenid/:address')
+router.route('/addresstransactions/:address')
+	.get(function(req, res) {
+
+		var address = req.params.address;
+
+		var limit = 100;
+
+		if (req.query.limit)
+		{
+			limit = parseInt(req.query.limit);
+		}
+
+		var page = 1;
+
+		if (req.query.page)
+		{
+			page = parseInt(req.query.page);
+		}
+		
+		var skip = (page - 1) * limit;
+
+		var sort = {"transactionDetails.timestamp_unix":-1};
+
+		updateaccessstats(req);
+		
+		var message = [];
+
+		(async () => {
+		
+		var qdbapi = new pyrkDB.default(mongoconnecturl, mongodatabase);
+		
+			var mclient = await qdbapi.connect();
+			qdbapi.setClient(mclient);
+			
+			var mquery = { 
+					$or : 
+						[ 
+							{"transactionDetails.senderAddress" : address},
+							{"transactionDetails.sendOutput.address": address}
+					   ]
+					};
+						
+			message = await qdbapi.findDocuments('transactions', mquery, limit, sort, skip);
+
+			qdbapi.close();
+			
+			res.json(message);
+		
+		})();
+				
+	});
+	
+router.route('/transactionsbyaddress/:tokenid/:address')
 	.get(function(req, res) {
 
 		var tokenid = req.params.tokenid;
@@ -564,7 +792,7 @@ router.route('/transactions/:tokenid/:address')
 				
 	});
 	
-router.route('/metadata/:txid')
+router.route('/metadatabytxid/:txid')
 	.get(function(req, res) {
 
 		var txid = req.params.txid;
@@ -610,7 +838,7 @@ router.route('/metadata/:tokenid')
 		
 		var skip = (page - 1) * limit;
 
-		var sort = {"metaDetails.timestamp_unix":1, "metaDetails.chunk":1};
+		var sort = {"metaDetails.timestamp_unix":-1};
 
 		updateaccessstats(req);
 		
@@ -657,7 +885,7 @@ router.route('/metadata/:tokenid/:address')
 		
 		var skip = (page - 1) * limit;
 
-		var sort = {"metaDetails.timestamp_unix":1, "metaDetails.chunk":1};
+		var sort = {"metaDetails.timestamp_unix":-1};
 		
 		updateaccessstats(req);
 		
@@ -692,6 +920,63 @@ router.route('/metadata/:tokenid/:address')
 				
 	});
 
+router.route('/metadatabycode/:tokenid/:metacode')
+	.get(function(req, res) {
+
+		var tokenid = req.params.tokenid;
+		var metacode = parseInt(req.params.metacode);
+
+		var limit = 100;
+
+		if (req.query.limit)
+		{
+			limit = parseInt(req.query.limit);
+		}
+
+		var page = 1;
+
+		if (req.query.page)
+		{
+			page = parseInt(req.query.page);
+		}
+		
+		var skip = (page - 1) * limit;
+
+		var sort = {"metaDetails.timestamp_unix":-1};
+		
+		updateaccessstats(req);
+		
+		var message = [];
+
+		(async () => {
+		
+			var qdbapi = new pyrkDB.default(mongoconnecturl, mongodatabase);
+		
+			var mclient = await qdbapi.connect();
+			qdbapi.setClient(mclient);
+			
+			var mquery = {
+				$and : 
+				[
+					{ 
+						"metaDetails.metaCode": metacode
+					},
+					{ 
+						"metaDetails.tokenIdHex":tokenid
+					}
+				]
+			};
+			
+			message = await qdbapi.findDocuments('metadata', mquery, limit, sort, skip);
+
+			qdbapi.close();
+			
+			res.json(message);
+		
+		})();
+				
+	});
+	
 router.route('/tokensByOwner/:owner')
 	.get(function(req, res) {
 	

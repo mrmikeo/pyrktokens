@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+
+  <!-- Basic Page Needs
+  –––––––––––––––––––––––––––––––––––––––––––––––––– -->
+  <meta charset="utf-8">
+  <title>Pyrk Tokens API</title>
+  <meta name="description" content="">
+  <meta name="author" content="">
+
+  <link rel="stylesheet" type="text/css" href="/stylesheets/swagger-ui.css" >
+  
+</head>
+
+<body>
+
+<div id="swagger-ui" style='background-color:#eee; margin:auto; margin-top:0px; padding-top:1px; padding-bottom:10px; max-width:1200px;'></div>
+
+<script type="text/javascript" src="/javascripts/swagger-ui-bundle.js"> </script>
+<script type="text/javascript" src="/javascripts/swagger-ui-standalone-preset.js"></script>
+
+<script type="text/javascript">
+
+	function HideTopbarPlugin() {
+		// this plugin overrides the Topbar component to return nothing
+		return {
+			components: {
+				Topbar: function () {
+					return null;
+				}
+			}
+		}
+	}
+
+	const ui = SwaggerUIBundle({
+		url: "/pyrktokens_openapi3.yaml",
+		dom_id: '#swagger-ui',
+		deepLinking: true,
+		presets: [
+		  SwaggerUIBundle.presets.apis,
+		  SwaggerUIStandalonePreset
+		],
+		plugins: [
+		  SwaggerUIBundle.plugins.DownloadUrl,
+		  HideTopbarPlugin
+		],
+		layout: "StandaloneLayout"
+	  });
+
+	window.ui = ui
+				
+</script>
+
+</body>
