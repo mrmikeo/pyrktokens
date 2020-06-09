@@ -726,10 +726,10 @@ console.log(valuesat);
 
 																	var valuesat = String(parseInt(rawvaluesat, 16));
 																	
-																	//console.log("tokenid:" + tokenid);
-																	//console.log("valuesat:" + valuesat);
+console.log("tokenid:" + tokenid);
+console.log("valuesat:" + valuesat);
 																	
-																	var realvalue = Big(stringvalue).div(100000000).toFixed(8);
+																	var realvalue = Big(valuesat).div(100000000).toFixed(8);
 																
 																	if (tokenid != '' && Big(realvalue).gt(0))
 																	{
@@ -746,7 +746,7 @@ console.log(valuesat);
 																				paymentid: '',
 																				feepaid: feespaid.toFixed(8)
 																			};
-																		
+console.log(createobject);																		
 																	}
 																	else
 																	{
@@ -888,12 +888,13 @@ console.log(createobject);
 																				protocolid: protocolid,
 																				versionnum: versionnum,
 																				opcode: opcode,
+																				tokenid: tokenid,
 																				senderaddress: senderaddress,
 																				transactiontype: 'PAUSE',
 																				paymentid: '',
 																				feepaid: feespaid.toFixed(8)
 																			};
-																		
+console.log(createobject);
 																	}
 																	else
 																	{
@@ -951,6 +952,7 @@ console.log(createobject);
 																				protocolid: protocolid,
 																				versionnum: versionnum,
 																				opcode: opcode,
+																				tokenid: tokenid,
 																				senderaddress: senderaddress,
 																				transactiontype: 'RESUME',
 																				paymentid: '',
@@ -1125,7 +1127,7 @@ console.log(createobject);
 															
 																break;
 
-															case '08':
+															case '09':
 															
 																/***
 																*
