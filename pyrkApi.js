@@ -44,6 +44,7 @@ const pyrkDB = require("./lib/pyrkDB");
 // Connect to Redis and setup some async call definitions
 const rclient	= redis.createClient(iniconfig.redis_port, iniconfig.redis_host,{detect_buffers: true});
 const hgetAsync = promisify(rclient.hget).bind(rclient);
+const hgetAllAsync = promisify(rclient.hgetall).bind(rclient);
 const hsetAsync = promisify(rclient.hset).bind(rclient);
 const getAsync	= promisify(rclient.get).bind(rclient);
 const setAsync	= promisify(rclient.set).bind(rclient);
@@ -315,7 +316,7 @@ router.route('/address/:addr')
 
 		(async () => {
 		
-		var qdbapi = new pyrkDB.default(mongoconnecturl, mongodatabase);
+			var qdbapi = new pyrkDB.default(mongoconnecturl, mongodatabase);
 		
 			var mclient = await qdbapi.connect();
 			qdbapi.setClient(mclient);
@@ -323,8 +324,59 @@ router.route('/address/:addr')
 
 			qdbapi.close();
 			
-			res.json(message);
+			for (let i = 0; i < message.length; i++)
+			{
+			
+				var pending = Big(0);
 		
+				var mempooltrx = await hgetAllAsync('pyrk_mempool');
+
+				if (mempooltrx)
+				{
+					var memkeys = Object.keys(mempooltrx);
+					for (let j = 0; j < memkeys.length; j++)
+					{
+				
+						var txid = memkeys[j];
+						var txinfo = JSON.parse(mempooltrx[txid]);
+					
+						if (txinfo.transactiontype == 'SEND' && message[i].tokenIdHex == txinfo.tokenid)
+						{
+					
+							if (txinfo.recipient == addr)
+							{
+						
+								pending = Big(pending).plus(txinfo.realvalue).toFixed(8);
+						
+							}
+						
+							if (txinfo.senderaddress == addr)
+							{
+						
+								pending = Big(pending).minus(txinfo.realvalue).toFixed(8);
+						
+							}
+					
+					
+						}
+				
+					}
+				}
+				
+				message[i]['pendingBalance'] = Big(pending).toFixed(8);
+				if (Big(pending).lt(0))
+				{
+					message[i]['availableBalance'] = Big(message[i]['tokenBalance']).plus(pending).toFixed(8);
+				}
+				else
+				{
+					message[i]['availableBalance'] = message[i]['tokenBalance'];
+				}
+		
+			}
+			
+			res.json(message);
+
 		})();
 				
 	});
@@ -443,6 +495,53 @@ router.route('/tokenaddress/:tokenid/:address')
 			if (message && message.tokenBalance)
 			{
 			
+				var pending = Big(0);
+		
+				var mempooltrx = await hgetAllAsync('pyrk_mempool');
+
+				if (mempooltrx)
+				{
+					var memkeys = Object.keys(mempooltrx);
+					for (let j = 0; j < memkeys.length; j++)
+					{
+				
+						var txid = memkeys[j];
+						var txinfo = JSON.parse(mempooltrx[txid]);
+					
+						if (txinfo.transactiontype == 'SEND' && message.tokenIdHex == txinfo.tokenid)
+						{
+					
+							if (txinfo.recipient == addr)
+							{
+						
+								pending = Big(pending).plus(txinfo.realvalue).toFixed(8);
+						
+							}
+						
+							if (txinfo.senderaddress == addr)
+							{
+						
+								pending = Big(pending).minus(txinfo.realvalue).toFixed(8);
+						
+							}
+					
+					
+						}
+				
+					}
+					
+				}
+				
+				message['pendingBalance'] = Big(pending).toFixed(8);
+				if (Big(pending).lt(0))
+				{
+					message['availableBalance'] = Big(message['tokenBalance']).plus(pending).toFixed(8);
+				}
+				else
+				{
+					message['availableBalance'] = message['tokenBalance'];
+				}
+		
 				res.json(message);
 				
 			}
@@ -707,11 +806,84 @@ router.route('/addresstransactions/:address')
 		var message = [];
 
 		(async () => {
+
+/*
+		var createobject = {
+				protocolid: protocolid,
+				versionnum: versionnum,
+				opcode: opcode,
+				senderaddress: senderaddress,
+				transactiontype: 'SEND',
+				tokenid: tokenid,
+				valuesat: valuesat,
+				realvalue: realvalue,
+				recipient: recipient,
+				paymentid: paymentid,
+				feepaid: feespaid.toFixed(8)
+			};
+*/
+
 		
-		var qdbapi = new pyrkDB.default(mongoconnecturl, mongodatabase);
+			var mempooltrx = await hgetAllAsync('pyrk_mempool');
+
+			var qdbapi = new pyrkDB.default(mongoconnecturl, mongodatabase);
 		
 			var mclient = await qdbapi.connect();
 			qdbapi.setClient(mclient);
+			
+			var pmessage = [];
+
+			if (mempooltrx)
+			{
+				var memkeys = Object.keys(mempooltrx);
+				for (let j = 0; j < memkeys.length; j++)
+				{
+			
+					var txid = memkeys[j];
+					var txinfo = JSON.parse(mempooltrx[txid]);
+				
+					if (txinfo.transactiontype == 'SEND' && (address == txinfo.senderaddress || address == txinfo.recipient))
+					{
+				
+						var tokeninfo = await qdbapi.findDocument('tokens', {'tokenDetails.tokenIdHex': txinfo.tokenid});
+
+						var txschema = {
+							schema_version: 1,
+							txid: txid,
+							blockId: null,
+							blockHeight: null,
+							valid: false,
+							invalidReason: "Pending",
+							transactionDetails: {
+								schema_version: 1,
+								transactionType: "SEND",
+								senderAddress: txinfo.senderaddress,
+								tokenIdHex: txinfo.tokenid,
+								versionType: txinfo.versionnum,
+								timestamp: "0000-00-00 00:00:00",
+								timestamp_unix: 0,
+								symbol: tokeninfo.tokenDetails.symbol,
+								name: tokeninfo.tokenDetails.name,
+								genesisOrBurnQuantity: "0",
+								sendOutput: {
+									schema_version: 1,
+									address: txinfo.recipient,
+									amount: txinfo.realvalue,
+									paymentId: txinfo.paymentid
+								},
+								fee_paid: "0"
+							}
+						};
+						
+						pmessage.push(txschema);
+
+					}
+			
+				}
+
+			}
+		
+
 			
 			var mquery = { 
 					$or : 
@@ -725,7 +897,7 @@ router.route('/addresstransactions/:address')
 
 			qdbapi.close();
 			
-			res.json(message);
+			res.json(pmessage.concat(message));
 		
 		})();
 				
